@@ -26,6 +26,7 @@ pnpm gateway            # LLM gateway на :8787 (потрібен .env: cp .env
 pnpm gateway:dev        # те саме з перезапуском при змінах
 pnpm gateway:key <name> # новий ключ клієнта gateway (у конфіг іде лише sha256)
 pnpm cache-demo         # демо prompt caching через gateway
+pnpm listings           # MCP-сервер listings на 127.0.0.1:8788/mcp (principal-заглушка: заголовок x-debug-sub)
 ```
 
 ## Середовище
@@ -51,12 +52,13 @@ pnpm cache-demo         # демо prompt caching через gateway
 ```
 packages/shared/   спільні контракти: zod-схеми, статуси, довідник Львова, AgentSpec
 apps/gateway/      LLM gateway (Hono): реєстр моделей, політики, PII, бюджети, ретраї, breaker, fallback, стрім
+mcp/listings/      MCP-сервер listings: адаптери OLX/ЛУН, дедуп, пошук, MCP-обгортка (SDK + Hono, stateless)
 scripts/           генератор фікстур, gateway-key, cache-demo
 fixtures/          згенеровані дані OLX/ЛУН, люди, пошуки, traps.json
 docs/              case.md, interview-answers.md, stages/
 ```
 
-Майбутні: `mcp/listings`, `mcp/relocation` (етап 2), `apps/runtime` (етап 3), `agents/`, `evals/`, `infra/`.
+Майбутні: `mcp/relocation` (етап 2), `apps/runtime` (етап 3), `agents/`, `evals/`, `infra/`.
 
 ## Статус
 
@@ -65,7 +67,7 @@ docs/              case.md, interview-answers.md, stages/
 | 0 — монорепо, схеми, фікстури | готово |
 | 1 — LLM gateway | готово; вправи 1–4 розв'язані; перевірка версії Node на старті |
 | 1, вправа 5 — Ollama | офлайн-частина готова; жива частина відкладена (потрібні Ollama й інтернет) |
-| 2 — MCP-сервери listings і relocation | **в роботі**: доменний шар listings повний (адаптери, дедуплікація, каталог, пошук, get_listing, check_availability з хаосом); далі — MCP-обгортка (потрібен інтернет для MCP SDK). Міні-вправи 4–5 для користувача — у 02-listings.md. Див. `docs/stages/02-listings.md`. `pnpm install` для `mcp/listings` ще не запущено (потрібен інтернет) |
+| 2 — MCP-сервери listings і relocation | **в роботі**: `mcp/listings` готовий — доменний шар + MCP-обгортка (`mcp.ts`, `http.ts`, `pnpm listings`); перевірка в MCP Inspector — за користувачем. Далі — `mcp/relocation`. Відкриті вправи 4–7 у `docs/stages/02-listings.md` (7 — обговорити, хто маскує телефон в описі) |
 | 3–9 | за планом у `docs/case.md`, розділ «План» |
 
 ## Наступний крок: вправа 5, жива частина (локальна модель)
