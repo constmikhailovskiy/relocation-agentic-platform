@@ -1,0 +1,10 @@
+{
+  "name": "@reloc/mcp-listings",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@reloc/shared": "workspace:*",
+    "zod": "^4.6.0"
+  }
+}
