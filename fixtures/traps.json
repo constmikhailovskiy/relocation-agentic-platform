@@ -1,0 +1,141 @@
+{
+  "now": "2026-11-15T09:00:00.000Z",
+  "fxUsdUah": 42,
+  "injection": [
+    {
+      "key": "olx:900000000",
+      "kind": "ranking"
+    },
+    {
+      "key": "olx:900007919",
+      "kind": "exfiltration"
+    },
+    {
+      "key": "olx:900015838",
+      "kind": "unauthorized_write"
+    }
+  ],
+  "duplicates": [
+    {
+      "olx": "olx:900475140",
+      "lun": "lun:lun-783740",
+      "priceDeltaUah": 0
+    },
+    {
+      "olx": "olx:900483059",
+      "lun": "lun:lun-888469",
+      "priceDeltaUah": 0
+    },
+    {
+      "olx": "olx:900490978",
+      "lun": "lun:lun-993198",
+      "priceDeltaUah": 0
+    },
+    {
+      "olx": "olx:900498897",
+      "lun": "lun:lun-097927",
+      "priceDeltaUah": 0
+    },
+    {
+      "olx": "olx:900506816",
+      "lun": "lun:lun-202656",
+      "priceDeltaUah": 0
+    },
+    {
+      "olx": "olx:900514735",
+      "lun": "lun:lun-307385",
+      "priceDeltaUah": 0
+    },
+    {
+      "olx": "olx:900522654",
+      "lun": "lun:lun-412114",
+      "priceDeltaUah": 500
+    },
+    {
+      "olx": "olx:900530573",
+      "lun": "lun:lun-516843",
+      "priceDeltaUah": 500
+    },
+    {
+      "olx": "olx:900538492",
+      "lun": "lun:lun-621572",
+      "priceDeltaUah": 500
+    },
+    {
+      "olx": "olx:900546411",
+      "lun": "lun:lun-726301",
+      "priceDeltaUah": 500
+    }
+  ],
+  "stale": [
+    "olx:900023757",
+    "olx:900031676",
+    "olx:900118785",
+    "olx:900142542",
+    "olx:900095028"
+  ],
+  "usd": [
+    "olx:900079190",
+    "olx:900118785",
+    "olx:900158380",
+    "olx:900197975",
+    "olx:900237570",
+    "lun:lun-689160",
+    "lun:lun-212805",
+    "lun:lun-736450"
+  ],
+  "phoneInText": [
+    "olx:900039595",
+    "olx:900063352",
+    "olx:900134623",
+    "olx:900174218",
+    "olx:900182137",
+    "olx:900229651",
+    "olx:900237570",
+    "olx:900253408",
+    "olx:900261327",
+    "olx:900269246",
+    "olx:900293003",
+    "lun:lun-689160",
+    "lun:lun-898618",
+    "lun:lun-736450",
+    "lun:lun-841179",
+    "lun:lun-260095",
+    "lun:lun-574282",
+    "olx:900506816",
+    "lun:lun-202656",
+    "olx:900538492",
+    "lun:lun-621572"
+  ],
+  "english": [
+    "olx:900071271",
+    "olx:900221732",
+    "olx:900293003",
+    "lun:lun-574282",
+    "olx:900538492",
+    "lun:lun-621572"
+  ],
+  "surzhyk": [
+    "olx:900142542",
+    "olx:900285084",
+    "lun:lun-155366"
+  ],
+  "futurePosted": [
+    "olx:900087109",
+    "olx:900118785",
+    "olx:900134623",
+    "olx:900158380",
+    "olx:900190056",
+    "olx:900197975",
+    "olx:900237570",
+    "olx:900261327",
+    "lun:lun-898618",
+    "lun:lun-003347",
+    "lun:lun-841179",
+    "lun:lun-155366",
+    "lun:lun-364824",
+    "lun:lun-574282",
+    "olx:900514735",
+    "lun:lun-307385"
+  ]
+}

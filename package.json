@@ -1,0 +1,29 @@
+{
+  "name": "relocation-platform",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.18.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "typecheck": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "fixtures": "tsx scripts/gen-fixtures.ts",
+    "gateway": "pnpm --filter @reloc/gateway start",
+    "gateway:dev": "pnpm --filter @reloc/gateway dev",
+    "gateway:key": "tsx scripts/gateway-key.ts",
+    "cache-demo": "tsx scripts/cache-demo.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.23.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  },
+  "dependencies": {
+    "@reloc/shared": "workspace:*",
+    "zod": "^4.6.0"
+  }
+}

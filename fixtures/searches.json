@@ -1,0 +1,38 @@
+[
+  {
+    "id": "s-olena",
+    "employeeId": "olena",
+    "status": "searching",
+    "companyCapUah": 20000,
+    "criteria": {
+      "maxBudgetUah": 18000,
+      "minRooms": 2,
+      "excludeDistricts": [
+        "sykhivskyi"
+      ],
+      "maxCommuteMin": 30,
+      "pets": true,
+      "moveInBy": "2026-12-15",
+      "mustHave": [
+        "washing_machine"
+      ]
+    }
+  },
+  {
+    "id": "s-maksym",
+    "employeeId": "maksym",
+    "status": "searching",
+    "companyCapUah": 15000,
+    "criteria": {
+      "maxBudgetUah": 14000,
+      "minRooms": 1,
+      "districts": [
+        "frankivskyi",
+        "halytskyi",
+        "shevchenkivskyi"
+      ],
+      "pets": false,
+      "moveInBy": "2026-12-01"
+    }
+  }
+]

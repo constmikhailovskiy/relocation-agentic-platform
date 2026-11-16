@@ -1,0 +1,16 @@
+{
+  "name": "@reloc/gateway",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch --disable-warning=ExperimentalWarning --env-file=../../.env src/server.ts",
+    "start": "tsx --disable-warning=ExperimentalWarning --env-file=../../.env src/server.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.8",
+    "@reloc/shared": "workspace:*",
+    "hono": "^4.13.18",
+    "zod": "^4.6.0"
+  }
+}

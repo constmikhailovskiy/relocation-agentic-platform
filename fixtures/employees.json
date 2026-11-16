@@ -1,0 +1,72 @@
+[
+  {
+    "id": "olena",
+    "name": "Олена Коваль",
+    "email": "olena@example.test",
+    "roles": [
+      "new_hire"
+    ],
+    "managerId": "ivan",
+    "startDate": "2026-12-01"
+  },
+  {
+    "id": "maksym",
+    "name": "Максим Бойко",
+    "email": "maksym@example.test",
+    "roles": [
+      "new_hire"
+    ],
+    "managerId": "sofiia",
+    "startDate": "2026-12-08"
+  },
+  {
+    "id": "taras",
+    "name": "Тарас Мельник",
+    "email": "taras@example.test",
+    "roles": [
+      "relocation_manager"
+    ],
+    "managerId": null,
+    "startDate": "2024-03-01"
+  },
+  {
+    "id": "ivan",
+    "name": "Іван Савчук",
+    "email": "ivan@example.test",
+    "roles": [
+      "hiring_manager"
+    ],
+    "managerId": null,
+    "startDate": "2023-09-01"
+  },
+  {
+    "id": "sofiia",
+    "name": "Софія Гнатюк",
+    "email": "sofiia@example.test",
+    "roles": [
+      "hiring_manager"
+    ],
+    "managerId": null,
+    "startDate": "2024-01-15"
+  },
+  {
+    "id": "bohdan",
+    "name": "Богдан Ткачук",
+    "email": "bohdan@example.test",
+    "roles": [
+      "agent_builder"
+    ],
+    "managerId": null,
+    "startDate": "2025-05-05"
+  },
+  {
+    "id": "audit",
+    "name": "Аудитор безпеки",
+    "email": "audit@example.test",
+    "roles": [
+      "auditor"
+    ],
+    "managerId": null,
+    "startDate": "2025-01-10"
+  }
+]
