@@ -27,6 +27,7 @@ pnpm gateway:dev        # те саме з перезапуском при зм�
 pnpm gateway:key <name> # новий ключ клієнта gateway (у конфіг іде лише sha256)
 pnpm cache-demo         # демо prompt caching через gateway
 pnpm listings           # MCP-сервер listings на 127.0.0.1:8788/mcp (principal-заглушка: заголовок x-debug-sub)
+pnpm relocation         # MCP-сервер relocation на 127.0.0.1:8789/mcp (та сама заглушка; x-debug-act — агент)
 ```
 
 ## Середовище
@@ -50,15 +51,16 @@ pnpm listings           # MCP-сервер listings на 127.0.0.1:8788/mcp (pri
 ## Структура
 
 ```
-packages/shared/   спільні контракти: zod-схеми, статуси, довідник Львова, AgentSpec
+packages/shared/   спільні контракти: zod-схеми, статуси, довідник Львова, AgentSpec, authorize (policy.ts), auth-заглушка
 apps/gateway/      LLM gateway (Hono): реєстр моделей, політики, PII, бюджети, ретраї, breaker, fallback, стрім
 mcp/listings/      MCP-сервер listings: адаптери OLX/ЛУН, дедуп, пошук, MCP-обгортка (SDK + Hono, stateless)
+mcp/relocation/    MCP-сервер relocation: 7 інструментів, права (RBAC/ReBAC/поля), HITL з args_hash, approvals, стор у пам'яті
 scripts/           генератор фікстур, gateway-key, cache-demo
 fixtures/          згенеровані дані OLX/ЛУН, люди, пошуки, traps.json
 docs/              case.md, interview-answers.md, stages/
 ```
 
-Майбутні: `mcp/relocation` (етап 2), `apps/runtime` (етап 3), `agents/`, `evals/`, `infra/`.
+Майбутні: `apps/runtime` (етап 3), `agents/`, `evals/`, `infra/`.
 
 ## Статус
 
@@ -67,7 +69,7 @@ docs/              case.md, interview-answers.md, stages/
 | 0 — монорепо, схеми, фікстури | готово |
 | 1 — LLM gateway | готово; вправи 1–4 розв'язані; перевірка версії Node на старті |
 | 1, вправа 5 — Ollama | офлайн-частина готова; жива частина відкладена (потрібні Ollama й інтернет) |
-| 2 — MCP-сервери listings і relocation | **в роботі**: `mcp/listings` готовий — доменний шар + MCP-обгортка (`mcp.ts`, `http.ts`, `pnpm listings`); перевірка в MCP Inspector — за користувачем. Далі — `mcp/relocation`. Відкриті вправи 4–7 у `docs/stages/02-listings.md` (7 — обговорити, хто маскує телефон в описі) |
+| 2 — MCP-сервери listings і relocation | **код готовий**: обидва сервери з усіма інструментами; `update_status` відхиляє недозволений перехід. `authorize` з таблицею з матриці ролей зроблено вже тут (у плані — етап 4). За користувачем: перевірка обох у MCP Inspector. Відкриті вправи: listings 4–7, relocation 1–6 (`docs/stages/02-*.md`) |
 | 3–9 | за планом у `docs/case.md`, розділ «План» |
 
 ## Наступний крок: вправа 5, жива частина (локальна модель)
@@ -95,3 +97,7 @@ docs/              case.md, interview-answers.md, stages/
   `update_status` (лише дозволені переходи з `TRANSITIONS`), `request_viewing` (HITL), `request_budget_exception`, `notify_employee`
   (лише власнику пошуку). Схвалення бюджету — **не** інструмент.
 - На етапі 2 auth — заглушка, але `principal` уже прокинутий у кожен обробник (етап 4 підставить JWT).
+- Прийняте правило (немає в case.md): статус міняють власник і relocation-менеджер; `hr_approval → secured` — лише менеджер.
+- Відмова: хто ресурсу не бачить — `not_found` (без enumeration); хто бачить, але дія не його — `forbidden` з підказкою.
+- Підтвердження перегляду (`confirmViewing`) і рішення щодо бюджету (`decideBudgetException`) — функції для runtime/UI, **не** інструменти.
+  Поки викликаються лише з тестів: етап 3 має додати для них окремий не-MCP маршрут; runtime рахує `argsHash` сам (`packages/shared`).

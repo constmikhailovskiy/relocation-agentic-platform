@@ -7,3 +7,4 @@ dist/
 **/data/
 evals/reports/
 firebase-debug.log
+.DS_Store

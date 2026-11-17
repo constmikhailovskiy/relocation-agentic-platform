@@ -5,3 +5,7 @@ export * from "./sources.ts";
 export * from "./status.ts";
 export * from "./people.ts";
 export * from "./agent-spec.ts";
+export * from "./policy.ts";
+export * from "./search.ts";
+export * from "./auth-stub.ts";
+export * from "./args-hash.ts";

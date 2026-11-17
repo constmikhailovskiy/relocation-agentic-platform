@@ -35,7 +35,7 @@ fixtures/listings.lun.json ──► lunToListing ─┘
 | `mcp/listings/src/search.ts` | фільтр за критеріями (`matches`) і ранжування кодом (`byRank`) для `search_listings` |
 | `mcp/listings/src/lookup.ts` | `getListing` і `checkAvailability` (псевдоніми, застарілі, хаос 429 і затримка); `ListingsError` |
 | `mcp/listings/src/mcp.ts` | **MCP-обгортка**: `createListingsServer(deps, principal)` — три інструменти, мапінг помилок, аудит |
-| `mcp/listings/src/http.ts` | **HTTP-вхід** (Hono + Streamable HTTP, stateless); заглушка principal з заголовків; `/health` |
+| `mcp/listings/src/http.ts` | **HTTP-вхід** (Hono + Streamable HTTP, stateless); `/health`. Заглушка principal — спільна, `packages/shared/src/auth-stub.ts` |
 | `mcp/listings/src/config.ts` | env через zod (`ListingsEnv`) і `loadDeps`: каталог із фікстур, хаос, годинник |
 | `mcp/listings/src/server.ts` | точка входу `pnpm listings`, слухає лише `127.0.0.1` |
 | `mcp/listings/test/olx.test.ts`, `lun.test.ts` | тести на всіх фікстурах; `traps.json` — ключ відповідей |
@@ -151,7 +151,7 @@ search.ts, lookup.ts   чисті функції доменного шару (б
 `GET`/`DELETE /mcp` → 405: вони потрібні лише для сесій. `enableJsonResponse: true` — відповідь
 звичайним JSON, а не SSE-потоком: інструменти короткі.
 
-**Principal — поки заглушка.** `principalFromHeaders` читає `x-debug-sub` і `x-debug-act`. Підробити
+**Principal — поки заглушка.** `principalFromHeaders` (тепер у `packages/shared/src/auth-stub.ts`, спільна з relocation; тип `Principal` — у `packages/shared/src/policy.ts`) читає `x-debug-sub` і `x-debug-act`. Підробити
 може будь-хто, тому сервер слухає лише `127.0.0.1`. На етапі 4 цю одну функцію замінить перевірка
 JWT (підпис, `aud=mcp-listings`, `sub` і `act`), решта коду не зміниться. Без principal — 401 ще до MCP.
 

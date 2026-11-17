@@ -1,19 +1,13 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { Criteria, Listing } from "@reloc/shared";
+import { Criteria, Listing, type Principal } from "@reloc/shared";
 import { z } from "zod";
 import type { Catalog } from "./catalog.ts";
 import { type Availability, type CheckOptions, ListingsError, checkAvailability, getListing } from "./lookup.ts";
 import { searchListings } from "./search.ts";
 
-/**
- * Хто викликає інструмент. `sub` — користувач, `act` — агент, що діє від його імені.
- * На етапі 2 це заглушка (див. http.ts), на етапі 4 його заповнить перевірений JWT.
- */
-export interface Principal {
-  sub: string;
-  act?: { sub: string };
-}
+/** Principal тепер спільний (packages/shared/src/policy.ts); реекспорт — щоб не міняти імпорти в http.ts і тестах. */
+export type { Principal } from "@reloc/shared";
 
 /** Усе, що потрібно серверу ззовні. Підмінюється в тестах — тому сервер детермінований. */
 export interface ListingsDeps {

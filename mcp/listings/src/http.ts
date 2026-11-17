@@ -1,18 +1,8 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { Hono } from "hono";
-import { type ListingsDeps, type Principal, createListingsServer } from "./mcp.ts";
-
-/**
- * ЗАГЛУШКА автентифікації (етап 2). Principal береться з заголовків — підробити може будь-хто,
- * тому сервер слухає лише 127.0.0.1. Етап 4 замінить цю функцію перевіркою JWT
- * (підпис, aud=mcp-listings, sub і act з токена), а решта коду не зміниться.
- */
-export function principalFromHeaders(headers: Headers): Principal | undefined {
-  const sub = headers.get("x-debug-sub");
-  if (!sub) return undefined;
-  const act = headers.get("x-debug-act");
-  return act ? { sub, act: { sub: act } } : { sub };
-}
+// Заглушка автентифікації спільна для обох серверів: packages/shared/src/auth-stub.ts.
+import { principalFromHeaders } from "@reloc/shared";
+import { type ListingsDeps, createListingsServer } from "./mcp.ts";
 
 /**
  * Hono-застосунок сервера listings.

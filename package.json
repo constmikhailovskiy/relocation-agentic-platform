@@ -16,7 +16,9 @@
     "gateway:key": "tsx scripts/gateway-key.ts",
     "cache-demo": "tsx scripts/cache-demo.ts",
     "listings": "pnpm --filter @reloc/mcp-listings start",
-    "listings:dev": "pnpm --filter @reloc/mcp-listings dev"
+    "listings:dev": "pnpm --filter @reloc/mcp-listings dev",
+    "relocation": "pnpm --filter @reloc/mcp-relocation start",
+    "relocation:dev": "pnpm --filter @reloc/mcp-relocation dev"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
