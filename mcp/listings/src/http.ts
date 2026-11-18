@@ -1,7 +1,6 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { Hono } from "hono";
-// Заглушка автентифікації спільна для обох серверів: packages/shared/src/auth-stub.ts.
-import { principalFromHeaders } from "@reloc/shared";
+import type { Authenticate } from "@reloc/shared";
 import { type ListingsDeps, createListingsServer } from "./mcp.ts";
 
 /**
@@ -9,14 +8,15 @@ import { type ListingsDeps, createListingsServer } from "./mcp.ts";
  * Stateless: на кожен POST — новий McpServer і новий транспорт. Сесій немає, тож
  * сервер можна масштабувати горизонтально, а principal не «прилипає» між запитами.
  */
-export function createListingsApp(deps: ListingsDeps): Hono {
+/** `authenticate` — ззовні: JWT від runtime у проді, заглушка з заголовків лише з AUTH_MODE=debug. */
+export function createListingsApp(deps: ListingsDeps, authenticate: Authenticate): Hono {
   const app = new Hono();
 
   app.get("/health", (c) => c.json({ ok: true, listings: deps.catalog.listings.length, skipped: deps.catalog.skipped.length }));
 
   app.post("/mcp", async (c) => {
-    const principal = principalFromHeaders(c.req.raw.headers);
-    if (principal === undefined) return c.json({ error: "unauthorized", message: "Потрібен principal (етап 2: заголовок x-debug-sub)" }, 401);
+    const principal = await authenticate(c.req.raw.headers);
+    if (principal === undefined) return c.json({ error: "unauthorized", message: "Потрібен дійсний делегований токен" }, 401);
 
     const server = createListingsServer(deps, principal);
     // Без sessionIdGenerator → stateless. enableJsonResponse: відповідь звичайним JSON, а не SSE-потоком —

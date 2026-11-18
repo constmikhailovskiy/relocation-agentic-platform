@@ -15,7 +15,7 @@ describe("agents/concierge.yaml", () => {
 
   it("кожен інструмент зі специфікації існує на серверах (інакше агент зламається вже в розмові)", async () => {
     const w = world();
-    const tools = await connectTools({ servers: w.urls, allowlist: loadAgentSpec(CONCIERGE).tools, headers: { "x-debug-sub": "olena" }, fetch: w.fetch });
+    const tools = await connectTools({ servers: w.urls, allowlist: loadAgentSpec(CONCIERGE).tools, authHeaders: async () => ({ "x-debug-sub": "olena" }), fetch: w.fetch });
     expect(tools.defs).toHaveLength(loadAgentSpec(CONCIERGE).tools.length);
     await tools.close();
   });

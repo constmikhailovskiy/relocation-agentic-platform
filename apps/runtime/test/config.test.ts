@@ -21,12 +21,16 @@ describe("RuntimeEnv", () => {
     expect(RuntimeEnv.safeParse({}).success).toBe(false);
   });
 
-  it("дефолти: локальні адреси трьох сервісів; порожній RUNTIME_NOW — як не задано", () => {
+  it("дефолти: локальні адреси сервісів, JWT-режим, Keycloak; порожній RUNTIME_NOW — як не задано", () => {
     expect(RuntimeEnv.parse({ RUNTIME_GATEWAY_KEY: "k", RUNTIME_NOW: "" })).toEqual({
       RUNTIME_GATEWAY_KEY: "k",
       GATEWAY_URL: "http://127.0.0.1:8787",
       LISTINGS_URL: "http://127.0.0.1:8788/mcp",
       RELOCATION_URL: "http://127.0.0.1:8789/mcp",
+      AUTH_MODE: "jwt",
+      IDP_ISSUER: "http://127.0.0.1:8080/realms/relocation-sandbox",
+      IDP_CLIENT_ID: "relocation-cli",
+      RUNTIME_STS_KEY_PATH: ".secrets/runtime-sts.private.jwk.json",
     });
   });
 });

@@ -8,6 +8,9 @@
 лише загортає їх (`mcp.ts`). Запуск: `pnpm relocation` → `http://127.0.0.1:8789/mcp`.
 Змінні: `RELOCATION_PORT`, `RELOCATION_NOW` (див. `.env.example`).
 
+> **Після етапу 4** сервер за замовчуванням вимагає JWT (див. [04-security.md](04-security.md)). Для Inspector і
+> curl із заголовками `x-debug-*` — `AUTH_MODE=debug pnpm relocation`.
+
 ## Сім інструментів і дві дії, яких агенту не дали
 
 | Інструмент | Що робить | Ключове правило |

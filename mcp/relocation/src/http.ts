@@ -1,5 +1,5 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import { principalFromHeaders } from "@reloc/shared";
+import type { Authenticate } from "@reloc/shared";
 import { Hono } from "hono";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { z } from "zod";
@@ -27,15 +27,25 @@ const ConfirmBody = z.strictObject({ argsHash: z.string().regex(/^[0-9a-f]{64}$/
  * stateless — на кожен POST новий McpServer і транспорт, principal не «прилипає» між запитами.
  * Стан (deps.store) при цьому спільний: він створений один раз у loadDeps.
  */
-export function createRelocationApp(deps: RelocationDeps): Hono {
+/**
+ * Дві довіри, дві функції автентифікації:
+ *  - mcp: делеговані токени від runtime (sub = людина, act = агент);
+ *  - human: токени людини від IdP — лише для дій людини (підтвердження). Runtime такий токен не випустить.
+ */
+export interface RelocationAuth {
+  mcp: Authenticate;
+  human: Authenticate;
+}
+
+export function createRelocationApp(deps: RelocationDeps, auth: RelocationAuth): Hono {
   const app = new Hono();
 
   // Лише кількість: /health зазвичай доступний моніторингу без авторизації, тож жодних даних про людей.
   app.get("/health", (c) => c.json({ ok: true, searches: deps.store.searchCount() }));
 
   app.post("/mcp", async (c) => {
-    const principal = principalFromHeaders(c.req.raw.headers);
-    if (principal === undefined) return c.json({ error: "unauthorized", message: "Потрібен principal (етап 2: заголовок x-debug-sub)" }, 401);
+    const principal = await auth.mcp(c.req.raw.headers);
+    if (principal === undefined) return c.json({ error: "unauthorized", message: "Потрібен дійсний делегований токен" }, 401);
 
     const server = createRelocationServer(deps, principal);
     const transport = new WebStandardStreamableHTTPServerTransport({ enableJsonResponse: true });
@@ -50,12 +60,11 @@ export function createRelocationApp(deps: RelocationDeps): Hono {
   /**
    * Підтвердження перегляду ЛЮДИНОЮ. Це не MCP-інструмент: агент цей маршрут не бачить і не може викликати
    * через tools/call. Тіло — хеш того, що runtime ПОКАЗАВ користувачу (viewingArgsHash), а не хеш із відповіді сервера.
-   * `act` у principal → 403 (перевірка в confirmViewing). Увага: поки auth — заглушка з заголовків, хто завгодно
-   * може надіслати x-debug-sub: olena без x-debug-act. Справжній захист — етап 4 (токен самого користувача).
+   * `act` у principal → 403 (перевірка в confirmViewing). Автентифікація — auth.human: токен від IdP, не від runtime.
    */
   app.post("/approvals/:id/confirm", async (c) => {
-    const principal = principalFromHeaders(c.req.raw.headers);
-    if (principal === undefined) return c.json({ error: { code: "unauthorized", message: "Потрібен principal" } }, 401);
+    const principal = await auth.human(c.req.raw.headers);
+    if (principal === undefined) return c.json({ error: { code: "unauthorized", message: "Потрібен токен користувача від IdP" } }, 401);
     const body = ConfirmBody.safeParse(await c.req.json().catch(() => null));
     if (!body.success) return c.json({ error: { code: "invalid_input", message: "Очікуємо {argsHash: sha256 hex}" } }, 400);
 

@@ -1,0 +1,14 @@
+# Локальна інфраструктура пісочниці. Запуск: docker compose -f infra/docker-compose.yml up -d keycloak
+services:
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4
+    # start-dev: HTTP без TLS, H2 у контейнері. Realm імпортується з infra/keycloak/ при кожному старті.
+    command: ["start-dev", "--import-realm"]
+    environment:
+      # Адмінка http://127.0.0.1:8080/admin — лише локально; пароль пісочниці, не секрет.
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+    ports:
+      - "127.0.0.1:8080:8080"
+    volumes:
+      - ./keycloak:/opt/keycloak/data/import:ro

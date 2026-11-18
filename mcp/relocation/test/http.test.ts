@@ -1,6 +1,8 @@
+import type { webcrypto } from "node:crypto";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-import { viewingArgsHash } from "@reloc/shared";
+import { debugHeaderAuth, jwtAuth, viewingArgsHash } from "@reloc/shared";
+import { SignJWT, createLocalJWKSet, exportJWK, generateKeyPair } from "jose";
 import { describe, expect, it } from "vitest";
 import type { AuditEvent } from "../src/context.ts";
 import { createRelocationApp } from "../src/http.ts";
@@ -11,7 +13,7 @@ import { NOW, freshWorld } from "./helpers.ts";
 function setup(headers: Record<string, string>) {
   const { store, ctx } = freshWorld();
   const audit: AuditEvent[] = [];
-  const app = createRelocationApp({ store, now: () => NOW, audit: (e) => audit.push(e) });
+  const app = createRelocationApp({ store, now: () => NOW, audit: (e) => audit.push(e) }, { mcp: debugHeaderAuth, human: debugHeaderAuth });
   const transport = new StreamableHTTPClientTransport(new URL("http://relocation.test/mcp"), {
     fetch: async (url, init) => app.request(url, init),
     requestInit: { headers },
@@ -112,5 +114,94 @@ describe("POST /approvals/:id/confirm", () => {
     const { confirm, shownHash } = pending();
     expect((await confirm({}, { argsHash: shownHash })).status).toBe(401);
     expect((await confirm({ "x-debug-sub": "olena" }, {})).status).toBe(400);
+  });
+});
+
+/**
+ * Етап 4: JWT-режим. Дві різні довіри:
+ *  - /mcp приймає лише делеговані токени від runtime (iss reloc-runtime, aud mcp-relocation);
+ *  - /approvals/:id/confirm — лише токени людини від IdP. Токен від runtime тут не діє, навіть з sub=olena
+ *    і без act: інакше runtime (або агент, що його зламав) міг би «підтвердити» сам.
+ */
+const runtime = await generateKeyPair("ES256");
+const idp = await generateKeyPair("ES256");
+const jwks = async (k: webcrypto.CryptoKeyPair["publicKey"]) => createLocalJWKSet({ keys: [{ ...(await exportJWK(k)), alg: "ES256" }] });
+const auth = {
+  mcp: jwtAuth({ issuer: "reloc-runtime", audience: "mcp-relocation", keys: await jwks(runtime.publicKey) }),
+  human: jwtAuth({ issuer: "http://idp.test/realms/relocation-sandbox", audience: "mcp-relocation", keys: await jwks(idp.publicKey), subjectClaim: "preferred_username" }),
+};
+const sign = (claims: Record<string, unknown>, key: webcrypto.CryptoKeyPair["privateKey"], iss: string) =>
+  new SignJWT(claims).setProtectedHeader({ alg: "ES256" }).setIssuer(iss).setAudience("mcp-relocation").setExpirationTime("5m").sign(key);
+const runtimeToken = (claims: Record<string, unknown>) => sign(claims, runtime.privateKey, "reloc-runtime");
+const idpToken = (username: string) => sign({ sub: "uuid-123", preferred_username: username }, idp.privateKey, "http://idp.test/realms/relocation-sandbox");
+
+describe("JWT-режим", () => {
+  function jwtWorld() {
+    const { store, ctx } = freshWorld();
+    const audit: AuditEvent[] = [];
+    const app = createRelocationApp({ store, now: () => NOW, audit: (e) => audit.push(e) }, auth);
+    return { app, store, ctx, audit };
+  }
+
+  it("x-debug-sub у JWT-режимі → 401 (заглушка вимкнена)", async () => {
+    const res = await jwtWorld().app.request("/mcp", { method: "POST", headers: { "content-type": "application/json", "x-debug-sub": "olena" }, body: "{}" });
+    expect(res.status).toBe(401);
+  });
+
+  it("токен людини від IdP на /mcp → 401: агентський вхід приймає лише делеговані токени runtime", async () => {
+    const res = await jwtWorld().app.request("/mcp", {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json, text/event-stream", authorization: `Bearer ${await idpToken("olena")}` },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it("/mcp з делегованим токеном: аудит отримує людину, агента і run_id", async () => {
+    const { app, audit } = jwtWorld();
+    const t = await runtimeToken({ sub: "ivan", act: { sub: "agent:concierge@7" }, run_id: "run-9" });
+    const transport = new StreamableHTTPClientTransport(new URL("http://relocation.test/mcp"), {
+      fetch: async (url, init) => app.request(url, init),
+      requestInit: { headers: { authorization: `Bearer ${t}` } },
+    });
+    const client = new Client({ name: "test", version: "0" });
+    await client.connect(transport);
+    await client.callTool({ name: "get_search", arguments: { employee_id: "olena" } });
+    await client.close();
+    expect(audit).toEqual([expect.objectContaining({ actor: "ivan", agent: "agent:concierge@7", runId: "run-9", decision: "allow_partial" })]);
+  });
+
+  describe("підтвердження перегляду", () => {
+    const SLOTS = ["2026-11-22T15:00:00.000Z"];
+    function pendingJwt() {
+      const w = jwtWorld();
+      w.store.addShortlistItems("s-olena", [{ listingKey: "olx:1001" }]);
+      w.store.setStatus("s-olena", "shortlist_ready");
+      const req = requestViewing(w.ctx("olena", "agent:concierge@7"), "s-olena", "olx:1001", SLOTS);
+      const confirm = (token: string) =>
+        w.app.request(`/approvals/${req.approvalId}/confirm`, {
+          method: "POST",
+          headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+          body: JSON.stringify({ argsHash: viewingArgsHash({ searchId: "s-olena", listingKey: "olx:1001", slots: SLOTS }) }),
+        });
+      return { ...w, confirm };
+    }
+
+    it("токен Олени від IdP → 200, пошук → viewing_requested", async () => {
+      const { confirm, store } = pendingJwt();
+      expect((await confirm(await idpToken("olena"))).status).toBe(200);
+      expect(store.searchById("s-olena")?.status).toBe("viewing_requested");
+    });
+
+    it("токен від runtime з sub=olena і БЕЗ act → 401: runtime не може підтвердити замість людини", async () => {
+      const { confirm, store } = pendingJwt();
+      expect((await confirm(await runtimeToken({ sub: "olena" }))).status).toBe(401);
+      expect(store.searchById("s-olena")?.status).toBe("shortlist_ready");
+    });
+
+    it("токен Максима від IdP → 404 (запиту для нього не існує)", async () => {
+      const { confirm } = pendingJwt();
+      expect((await confirm(await idpToken("maksym"))).status).toBe(404);
+    });
   });
 });

@@ -173,6 +173,9 @@ curl -s -H 'content-type: application/json' -H 'accept: application/json, text/e
   127.0.0.1:8788/mcp -d '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"get_listing","arguments":{"key":"olx:1"}}}'
 ```
 
+> **Після етапу 4** сервери за замовчуванням вимагають JWT. Для curl і Inspector із заголовком `x-debug-sub`
+> запускай сервер з `AUTH_MODE=debug pnpm listings` (сервер надрукує попередження).
+
 MCP Inspector (готовність етапу за `case.md` — «усі інструменти викликаються з MCP Inspector»):
 `npx @modelcontextprotocol/inspector`, транспорт Streamable HTTP, URL `http://127.0.0.1:8788/mcp`,
 заголовок `x-debug-sub: olena`. Де саме в інтерфейсі Inspector 2.x задається заголовок — ще не

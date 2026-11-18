@@ -26,9 +26,12 @@ pnpm gateway            # LLM gateway на :8787 (потрібен .env: cp .env
 pnpm gateway:dev        # те саме з перезапуском при змінах
 pnpm gateway:key <name> # новий ключ клієнта gateway (у конфіг іде лише sha256)
 pnpm cache-demo         # демо prompt caching через gateway
-pnpm listings           # MCP-сервер listings на 127.0.0.1:8788/mcp (principal-заглушка: заголовок x-debug-sub)
-pnpm relocation         # MCP-сервер relocation на 127.0.0.1:8789/mcp (та сама заглушка; x-debug-act — агент)
-pnpm chat --as olena    # CLI-чат з агентом Concierge (потрібні gateway, listings, relocation; --model mock — без звернень до Anthropic)
+pnpm listings           # MCP-сервер listings на 127.0.0.1:8788/mcp (JWT від runtime; AUTH_MODE=debug — заглушка x-debug-*)
+pnpm relocation         # MCP-сервер relocation на 127.0.0.1:8789/mcp (те саме; /approvals — лише токени Keycloak)
+pnpm chat --as olena    # CLI-чат з агентом Concierge (потрібні gateway, listings, relocation, Keycloak; --model mock — без звернень до Anthropic)
+pnpm sts:keygen         # ключі runtime-STS у .secrets/ (один раз; у git не йдуть)
+pnpm audit:verify       # перевірити хеш-ланцюжок data/audit.db; --run <id> — події одного запуску
+docker compose -f infra/docker-compose.yml up -d keycloak   # Keycloak на 127.0.0.1:8080, realm relocation-sandbox
 ```
 
 ## Середовище
@@ -64,7 +67,9 @@ fixtures/          згенеровані дані OLX/ЛУН, люди, пош�
 docs/              case.md, interview-answers.md, stages/
 ```
 
-Майбутні: `evals/`, `infra/`.
+infra/             docker-compose (Keycloak), realm relocation-sandbox
+
+Майбутні: `evals/`.
 
 ## Статус
 
@@ -75,7 +80,8 @@ docs/              case.md, interview-answers.md, stages/
 | 1, вправа 5 — Ollama | офлайн-частина готова; жива частина відкладена (потрібні Ollama й інтернет) |
 | 2 — MCP-сервери listings і relocation | **код готовий**: обидва сервери з усіма інструментами; `update_status` відхиляє недозволений перехід. `authorize` з таблицею з матриці ролей зроблено вже тут (у плані — етап 4). За користувачем: перевірка обох у MCP Inspector. Вправи розв'язані (`docs/stages/02-*-solutions.md`); відкрите рішення за користувачем — listings 7 (маскувати телефон в описі ще й у listings) |
 | 3 — цикл агента + CLI-чат | **готово**: повний сценарій пройдено офлайн (`scenario.test.ts`) і наживо з `haiku` ($0.006 за сесію). Вправи 1–8 у `docs/stages/03-runtime.md` не розв'язані; інтерактивний TTY-режим ще не перевірено (лише pipe) |
-| 4–9 | за планом у `docs/case.md`, розділ «План» |
+| 4 — SSO, делегування, аудит | **готово**: аудит з хеш-ланцюжком і `audit:verify`; JWT у серверах; runtime як STS; підтвердження лише токеном Keycloak. Наживо з Keycloak і `haiku`: Іван не бачить бюджет, Богдан не запускає Concierge, Олена — повний сценарій. Вправи 1–6 у `docs/stages/04-security.md` не розв'язані |
+| 5–9 | за планом у `docs/case.md`, розділ «План» |
 
 ## Наступний крок: вправа 5, жива частина (локальна модель)
 
@@ -101,7 +107,7 @@ docs/              case.md, interview-answers.md, stages/
 - `mcp/relocation`: `get_search` (проєкція полів за роллю), `set_criteria`, `save_shortlist` (ідемпотентний),
   `update_status` (лише дозволені переходи з `TRANSITIONS`), `request_viewing` (HITL), `request_budget_exception`, `notify_employee`
   (лише власнику пошуку). Схвалення бюджету — **не** інструмент.
-- На етапі 2 auth — заглушка, але `principal` уже прокинутий у кожен обробник (етап 4 підставить JWT).
+- На етапі 2 auth — заглушка, але `principal` уже прокинутий у кожен обробник. Етап 4 підставив JWT (заглушка — лише `AUTH_MODE=debug`).
 - Прийняте правило (немає в case.md): статус міняють власник і relocation-менеджер; `hr_approval → secured` — лише менеджер.
 - Відмова: хто ресурсу не бачить — `not_found` (без enumeration); хто бачить, але дія не його — `forbidden` з підказкою.
 - Підтвердження перегляду (`confirmViewing`) і рішення щодо бюджету (`decideBudgetException`) — функції для runtime/UI, **не** інструменти.
@@ -117,3 +123,11 @@ docs/              case.md, interview-answers.md, stages/
 - Тести без мережі: сценарна модель (`apps/runtime/test/fakes.ts`) + справжні сервери в пам'яті (`test/world.ts`).
   Gateway-ний `mock` робить лише один виклик на повідомлення — для сценаріїв не годиться.
 - Живе демо: однакове «зараз» для всіх (`LISTINGS_NOW`, `RELOCATION_NOW`, `RUNTIME_NOW` = `2026-11-15T09:00:00.000Z`).
+
+## Етап 4 — коротко (деталі в docs/stages/04-security.md)
+
+- Аудит: `AuditLog` у `packages/shared/src/audit.ts`, один файл `data/audit.db` на обидва сервери, `BEGIN IMMEDIATE`, тригери append-only.
+- Сервери: `Authenticate` ін'єкцією; `buildServerAuth` — `/mcp` вірить лише ключу runtime, `/approvals` — лише Keycloak.
+- Runtime: `userVerifier` (токен IdP → `VerifiedUser` з брендом), `assertAudience`, `createSts`, `delegatedAuthHeaders` — токен на КОЖЕН запит.
+- Ролі: Keycloak (для audience в runtime) = довідник людей (для `authorize` на сервері); тест realm-у тримає їх однаковими. Сервер ролям від runtime не вірить.
+- Демо-пароль пісочниці Keycloak: `sandbox` (не секрет; лише 127.0.0.1).

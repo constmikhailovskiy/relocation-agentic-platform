@@ -1,0 +1,190 @@
+{
+  "realm": "relocation-sandbox",
+  "enabled": true,
+  "registrationAllowed": false,
+  "editUsernameAllowed": false,
+  "accessTokenLifespan": 1800,
+  "roles": {
+    "realm": [
+      {
+        "name": "new_hire"
+      },
+      {
+        "name": "relocation_manager"
+      },
+      {
+        "name": "hiring_manager"
+      },
+      {
+        "name": "agent_builder"
+      },
+      {
+        "name": "auditor"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "relocation-cli",
+      "name": "Relocation CLI (pnpm chat)",
+      "enabled": true,
+      "publicClient": true,
+      "directAccessGrantsEnabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocolMappers": [
+        {
+          "name": "aud-relocation-cli",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "relocation-cli",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        },
+        {
+          "name": "aud-mcp-relocation",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "mcp-relocation",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "olena",
+      "enabled": true,
+      "email": "olena@example.test",
+      "emailVerified": true,
+      "firstName": "Олена",
+      "lastName": "Коваль",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sandbox",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "new_hire"
+      ]
+    },
+    {
+      "username": "maksym",
+      "enabled": true,
+      "email": "maksym@example.test",
+      "emailVerified": true,
+      "firstName": "Максим",
+      "lastName": "Бойко",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sandbox",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "new_hire"
+      ]
+    },
+    {
+      "username": "taras",
+      "enabled": true,
+      "email": "taras@example.test",
+      "emailVerified": true,
+      "firstName": "Тарас",
+      "lastName": "Мельник",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sandbox",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "relocation_manager"
+      ]
+    },
+    {
+      "username": "ivan",
+      "enabled": true,
+      "email": "ivan@example.test",
+      "emailVerified": true,
+      "firstName": "Іван",
+      "lastName": "Савчук",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sandbox",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "hiring_manager"
+      ]
+    },
+    {
+      "username": "sofiia",
+      "enabled": true,
+      "email": "sofiia@example.test",
+      "emailVerified": true,
+      "firstName": "Софія",
+      "lastName": "Гнатюк",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sandbox",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "hiring_manager"
+      ]
+    },
+    {
+      "username": "bohdan",
+      "enabled": true,
+      "email": "bohdan@example.test",
+      "emailVerified": true,
+      "firstName": "Богдан",
+      "lastName": "Ткачук",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sandbox",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "agent_builder"
+      ]
+    },
+    {
+      "username": "audit",
+      "enabled": true,
+      "email": "audit@example.test",
+      "emailVerified": true,
+      "firstName": "Аудитор",
+      "lastName": "безпеки",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "sandbox",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "auditor"
+      ]
+    }
+  ]
+}

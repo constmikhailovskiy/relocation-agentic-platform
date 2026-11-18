@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { FX_USD_UAH } from "@reloc/shared";
+import { AuditLog, FX_USD_UAH, argsHash } from "@reloc/shared";
 import { z } from "zod";
 import { buildCatalog } from "./catalog.ts";
 import type { Availability } from "./lookup.ts";
@@ -19,11 +19,13 @@ export const ListingsEnv = z.object({
   /** Зафіксувати «зараз» (для демо й evals на фікстурах). Без нього — справжній годинник. */
   // z.preprocess: спершу "" → undefined (рядок `LISTINGS_NOW=` у .env дає саме порожній рядок), потім перевірка.
   LISTINGS_NOW: z.preprocess((v) => (v === "" ? undefined : v), z.iso.datetime().optional()),
+  /** Спільний журнал аудиту (обидва MCP-сервери). Відносний шлях — від кореня репо. */
+  AUDIT_DB_PATH: z.preprocess((v) => (v === "" ? undefined : v), z.string().optional()),
 });
 export type ListingsEnv = z.output<typeof ListingsEnv>;
 
 /** Зібрати залежності сервера: каталог і статуси з фікстур, хаос і годинник з env. */
-export function loadDeps(env: ListingsEnv, fixturesDir: string): ListingsDeps {
+export function loadDeps(env: ListingsEnv, fixturesDir: string, opts: { auditPath: string }): ListingsDeps {
   const read = (name: string): unknown => JSON.parse(readFileSync(join(fixturesDir, name), "utf8"));
   // traps.json тут свідомо НЕ читаємо: це ключ відповідей для тестів, сервер його знати не має.
   const catalog = buildCatalog(
@@ -31,7 +33,21 @@ export function loadDeps(env: ListingsEnv, fixturesDir: string): ListingsDeps {
     { fxUsdUah: FX_USD_UAH },
   );
   const fixedNow = env.LISTINGS_NOW;
+  const log = new AuditLog(opts.auditPath);
   return {
+    // listings лише читає публічний каталог, тож рішення завжди allow. Аргументи — хешем:
+    // критерії пошуку (бюджет!) — це дані людини, у журналі їм не місце.
+    audit: ({ tool, principal, args }) =>
+      void log.append({
+        action: `listings.${tool}`,
+        actor: principal.sub,
+        ...(principal.act && { agent: principal.act.sub }),
+        ...(principal.runId && { runId: principal.runId }),
+        resource: "catalog",
+        decision: "allow",
+        reason: "public_catalog",
+        argsHash: argsHash((args ?? {}) as Record<string, unknown>),
+      }),
     catalog,
     availability: read("availability.json") as Availability,
     now: () => fixedNow ?? new Date().toISOString(),

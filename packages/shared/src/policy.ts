@@ -8,6 +8,8 @@ import type { Role } from "./people.ts";
 export interface Principal {
   sub: string;
   act?: { sub: string };
+  /** Запуск агента (run_id з делегованого токена) — для аудиту «усі кроки запуску X». authorize його не читає. */
+  runId?: string;
 }
 
 /** Principal + ролі, які сервер дістав із довідника людей (етап 4: з груп у JWT). */

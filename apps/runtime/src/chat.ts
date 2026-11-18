@@ -1,14 +1,20 @@
-import { join, resolve } from "node:path";
+import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { isAbsolute, join, resolve } from "node:path";
 import { createInterface } from "node:readline";
+import type { AgentSpec } from "@reloc/shared";
+import { type JWK, createRemoteJWKSet, importJWK } from "jose";
 import { z } from "zod";
 import { RuntimeEnv, parseChatArgs } from "./config.ts";
 import { gatewayModel } from "./gateway-model.ts";
+import { passwordLogin } from "./idp-login.ts";
 import { type ViewingShown, viewingGuard } from "./hitl.ts";
 import type { RunOutcome, TraceEvent } from "./loop.ts";
 import { connectTools } from "./mcp-tools.ts";
 import { relocationConfirmer } from "./relocation-client.ts";
 import { createSession, delegationHeaders } from "./session.ts";
 import { loadAgentSpec } from "./spec.ts";
+import { assertAudience, createSts, delegatedAuthHeaders, userVerifier } from "./sts.ts";
 
 /**
  * CLI-чат: pnpm chat --as olena [--model mock|haiku] [--agent agents/concierge.yaml]
@@ -86,6 +92,50 @@ function printOutcome(o: RunOutcome): void {
   else console.log(`\n[зупинено: ${o.message}]\n`);
 }
 
+// ---------- Хто людина ----------
+
+interface UserAuth {
+  sub: string;
+  mode: string;
+  agentHeaders: (current: { runId: string }) => (server: string) => Promise<Record<string, string>>;
+  humanHeaders: () => Promise<Record<string, string>>;
+}
+
+/**
+ * jwt: логін у Keycloak → runtime САМ перевіряє токен (підпис, iss, aud) → роль в audience агента →
+ *      делеговані токени від STS на кожен запит; підтвердження — токеном людини.
+ * debug: заглушка x-debug-* (сервери теж мають бути з AUTH_MODE=debug). Так працювали етапи 2–3.
+ */
+async function authenticateUser(env: RuntimeEnv, repoRoot: string, username: string, spec: AgentSpec, input: ReturnType<typeof lineReader>): Promise<UserAuth> {
+  if (env.AUTH_MODE === "debug") {
+    console.warn(dim("⚠  AUTH_MODE=debug: ніякої автентифікації, principal із заголовків x-debug-*"));
+    return {
+      sub: username,
+      mode: "debug",
+      agentHeaders: () => async () => delegationHeaders(username, spec),
+      humanHeaders: async () => ({ "x-debug-sub": username }),
+    };
+  }
+  const password = env.DEMO_PASSWORD ?? (await input.ask(`пароль ${username} (пісочниця Keycloak): `));
+  if (!password) throw new Error("Без пароля входу немає");
+  const token = await passwordLogin({ issuer: env.IDP_ISSUER, clientId: env.IDP_CLIENT_ID, username, password });
+  const user = await userVerifier({
+    issuer: env.IDP_ISSUER,
+    audience: env.IDP_CLIENT_ID,
+    keys: createRemoteJWKSet(new URL(`${env.IDP_ISSUER}/protocol/openid-connect/certs`)),
+  })(token);
+  assertAudience(spec, user);
+  const keyPath = isAbsolute(env.RUNTIME_STS_KEY_PATH) ? env.RUNTIME_STS_KEY_PATH : join(repoRoot, env.RUNTIME_STS_KEY_PATH);
+  const jwk = JSON.parse(readFileSync(keyPath, "utf8")) as JWK & { kid: string };
+  const sts = createSts({ privateKey: await importJWK(jwk, "ES256") as Parameters<typeof createSts>[0]["privateKey"], kid: jwk.kid });
+  return {
+    sub: user.sub,
+    mode: `jwt, ролі: ${user.roles.join(", ")}`,
+    agentHeaders: (current) => delegatedAuthHeaders(sts, user, `agent:${spec.id}@${spec.version}`, current),
+    humanHeaders: async () => ({ authorization: `Bearer ${token}` }),
+  };
+}
+
 // ---------- Збірка ----------
 
 async function main(): Promise<void> {
@@ -101,12 +151,16 @@ async function main(): Promise<void> {
   const modelAlias = args.model ?? spec.model.primary;
   const now = env.RUNTIME_NOW ?? new Date().toISOString();
 
+  const input = lineReader();
+  const auth = await authenticateUser(env, repoRoot, args.sub, spec, input);
+
+  // Поточний хід: сесія оновлює runId, а STS кладе його в кожен делегований токен.
+  const current = { runId: "" };
   const tools = await connectTools({
     servers: { listings: env.LISTINGS_URL, relocation: env.RELOCATION_URL },
     allowlist: spec.tools,
-    headers: delegationHeaders(args.sub, spec),
+    authHeaders: auth.agentHeaders(current),
   });
-  const input = lineReader();
   const guards = new Map([
     [
       "relocation.request_viewing",
@@ -116,21 +170,23 @@ async function main(): Promise<void> {
           const a = await input.ask("Підтвердити? [y/N] ");
           return a !== null && /^(y|yes|т|так)$/i.test(a.trim());
         },
-        confirm: relocationConfirmer({ baseUrl: new URL(env.RELOCATION_URL).origin, sub: args.sub }),
+        // Підтвердження — заголовками ЛЮДИНИ (токен IdP), не агента.
+        confirm: relocationConfirmer({ baseUrl: new URL(env.RELOCATION_URL).origin, authHeaders: auth.humanHeaders }),
       }),
     ],
   ]);
   const session = createSession({
     spec,
-    sub: args.sub,
+    sub: auth.sub,
     now,
+    newRunId: () => (current.runId = randomUUID()),
     model: gatewayModel({ baseUrl: env.GATEWAY_URL, apiKey: env.RUNTIME_GATEWAY_KEY, model: modelAlias, agentId: `${spec.id}@${spec.version}`, dataClass: spec.dataClass }),
     tools,
     guards,
     onTrace: printTrace,
   });
 
-  console.log(`${spec.id}@${spec.version} · модель ${modelAlias} · від імені ${args.sub} · зараз ${now}`);
+  console.log(`${spec.id}@${spec.version} · модель ${modelAlias} · від імені ${auth.sub} (${auth.mode}) · зараз ${now}`);
   console.log(`інструменти: ${tools.defs.map((d) => d.function.name).join(", ")}`);
   console.log("Порожній рядок або /exit — вихід.\n");
 

@@ -7,8 +7,12 @@ export interface ConnectOptions {
   servers: Record<string, string>;
   /** Інструменти зі специфікації агента, формат "server.tool". */
   allowlist: readonly string[];
-  /** Principal для серверів. Етап 2–3: x-debug-sub/x-debug-act; етап 4 — Authorization: Bearer <короткий JWT>. */
-  headers: Record<string, string>;
+  /**
+   * Заголовки автентифікації для сервера — на КОЖЕН HTTP-запит, а не раз при підключенні:
+   * делегований токен живе 5 хвилин, має aud саме цього сервера і run_id поточного ходу.
+   * Етап 4: `Authorization: Bearer <JWT від STS>`; тести — x-debug-*.
+   */
+  authHeaders: (server: string) => Promise<Record<string, string>>;
   /** Підміна fetch для тестів (запити йдуть у Hono-застосунки в пам'яті). */
   fetch?: (url: string | URL | Request, init?: RequestInit) => Promise<Response>;
 }
@@ -36,9 +40,14 @@ export async function connectTools(opts: ConnectOptions): Promise<ToolSet> {
   const handles = new Map<string, ToolHandle>();
   try {
     for (const [server, tools] of wanted) {
+      const baseFetch = opts.fetch ?? fetch;
       const transport = new StreamableHTTPClientTransport(new URL(opts.servers[server]!), {
-        requestInit: { headers: opts.headers },
-        ...(opts.fetch && { fetch: opts.fetch }),
+        // Обгортка fetch: SDK кличе її на кожен запит, ми додаємо свіжі заголовки.
+        fetch: async (url, init) => {
+          const headers = new Headers(init?.headers);
+          for (const [k, v] of Object.entries(await opts.authHeaders(server))) headers.set(k, v);
+          return baseFetch(url, { ...init, headers });
+        },
       });
       const client = new Client({ name: "reloc-runtime", version: "0.1.0" });
       await client.connect(transport);

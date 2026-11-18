@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { debugHeaderAuth, jwtAuth } from "@reloc/shared";
 import { describe, expect, it } from "vitest";
 import { buildCatalog } from "../src/catalog.ts";
 import { createListingsApp } from "../src/http.ts";
@@ -20,7 +21,7 @@ const availability = fixtures("availability.json") as Availability;
 function setup(headers: Record<string, string>) {
   const seen: Principal[] = [];
   const deps: ListingsDeps = { catalog, availability, now: () => traps.now, audit: (e) => void seen.push(e.principal) };
-  const app = createListingsApp(deps);
+  const app = createListingsApp(deps, debugHeaderAuth);
   const transport = new StreamableHTTPClientTransport(new URL("http://listings.test/mcp"), {
     fetch: async (url, init) => app.request(url, init), // async: SDK чекає саме Promise<Response>
     requestInit: { headers },
@@ -64,5 +65,13 @@ describe("HTTP /mcp", () => {
     const res = await app.request("/health");
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ ok: true, listings: catalog.listings.length, skipped: catalog.skipped.length });
+  });
+});
+
+describe("JWT-режим (етап 4)", () => {
+  it("x-debug-sub без токена → 401", async () => {
+    const app = createListingsApp({ catalog, availability, now: () => traps.now }, jwtAuth({ issuer: "reloc-runtime", audience: "mcp-listings", keys: async () => { throw new Error("no key"); } }));
+    const res = await app.request("/mcp", { method: "POST", headers: { "content-type": "application/json", "x-debug-sub": "olena" }, body: "{}" });
+    expect(res.status).toBe(401);
   });
 });

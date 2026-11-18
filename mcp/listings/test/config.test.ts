@@ -25,14 +25,29 @@ describe("ListingsEnv", () => {
 
 describe("loadDeps", () => {
   it("каталог із фікстур, хаос з env, годинник — LISTINGS_NOW, якщо задано", () => {
-    const deps = loadDeps(ListingsEnv.parse({ LISTINGS_429_RATE: "0.5", LISTINGS_NOW: "2026-11-15T09:00:00.000Z" }), fixturesDir);
+    const deps = loadDeps(ListingsEnv.parse({ LISTINGS_429_RATE: "0.5", LISTINGS_NOW: "2026-11-15T09:00:00.000Z" }), fixturesDir, { auditPath: ":memory:" });
     expect(deps.catalog.listings.length).toBeGreaterThan(0);
     expect(deps.chaos).toEqual({ rate429: 0.5, latencyMs: 0 });
     expect(deps.now()).toBe("2026-11-15T09:00:00.000Z");
   });
 
   it("без LISTINGS_NOW — справжній годинник", () => {
-    const deps = loadDeps(ListingsEnv.parse({}), fixturesDir);
+    const deps = loadDeps(ListingsEnv.parse({}), fixturesDir, { auditPath: ":memory:" });
     expect(Math.abs(Date.parse(deps.now()) - Date.now())).toBeLessThan(5000);
+  });
+});
+
+describe("loadDeps: аудит у спільний журнал (етап 4)", () => {
+  it("виклик інструмента → listings.<tool>, людина і агент; аргументи — лише хешем", async () => {
+    const { mkdtempSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { AuditLog, argsHash } = await import("@reloc/shared");
+    const auditPath = join(mkdtempSync(join(tmpdir(), "listings-audit-")), "audit.db");
+    const deps = loadDeps(ListingsEnv.parse({}), fixturesDir, { auditPath });
+    const args = { criteria: { maxBudgetUah: 19000 } };
+    deps.audit!({ tool: "search_listings", principal: { sub: "olena", act: { sub: "agent:concierge@7" } }, args });
+    const [row] = new AuditLog(auditPath).all();
+    expect(row).toMatchObject({ action: "listings.search_listings", actor: "olena", agent: "agent:concierge@7", decision: "allow", argsHash: argsHash(args) });
+    expect(JSON.stringify(row)).not.toContain("19000");
   });
 });

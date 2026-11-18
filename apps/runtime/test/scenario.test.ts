@@ -32,11 +32,11 @@ function firstListingKey(messages: Message[]): string {
 
 async function setup(answer: boolean) {
   const w = world();
-  const tools = await connectTools({ servers: w.urls, allowlist: spec.tools, headers: delegationHeaders("olena", spec), fetch: w.fetch });
+  const tools = await connectTools({ servers: w.urls, allowlist: spec.tools, authHeaders: async () => delegationHeaders("olena", spec), fetch: w.fetch });
   opened.push(tools);
   const asked: unknown[] = [];
   const guards = new Map([
-    ["relocation.request_viewing", viewingGuard({ ask: async (s) => (asked.push(s), answer), confirm: relocationConfirmer({ baseUrl: w.relocationBaseUrl, sub: "olena", fetch: w.fetch }) })],
+    ["relocation.request_viewing", viewingGuard({ ask: async (s) => (asked.push(s), answer), confirm: relocationConfirmer({ baseUrl: w.relocationBaseUrl, authHeaders: async () => ({ "x-debug-sub": "olena" }), fetch: w.fetch }) })],
   ]);
   let key = "";
   const model = scriptedModel([
@@ -107,7 +107,7 @@ describe("Повний сценарій Concierge (етап 3: готово, к�
 
   it("кожен хід чату — новий runId (бюджет запуску в gateway рахується на хід)", async () => {
     const w = world();
-    const tools = await connectTools({ servers: w.urls, allowlist: spec.tools, headers: delegationHeaders("olena", spec), fetch: w.fetch });
+    const tools = await connectTools({ servers: w.urls, allowlist: spec.tools, authHeaders: async () => delegationHeaders("olena", spec), fetch: w.fetch });
     opened.push(tools);
     const model = scriptedModel(["перша", "друга"]);
     let n = 0;
@@ -122,7 +122,7 @@ describe("Повний сценарій Concierge (етап 3: готово, к�
 describe("createSession: запуск без HITL для інструмента з високим ризиком не стартує", () => {
   it("request_viewing у специфікації, guard не передано → помилка", async () => {
     const w = world();
-    const tools = await connectTools({ servers: w.urls, allowlist: spec.tools, headers: delegationHeaders("olena", spec), fetch: w.fetch });
+    const tools = await connectTools({ servers: w.urls, allowlist: spec.tools, authHeaders: async () => delegationHeaders("olena", spec), fetch: w.fetch });
     opened.push(tools);
     expect(() => createSession({ spec, sub: "olena", now: WORLD_NOW, model: scriptedModel([]), tools, guards: new Map() })).toThrow(/request_viewing/);
   });

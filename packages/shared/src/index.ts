@@ -9,3 +9,5 @@ export * from "./policy.ts";
 export * from "./search.ts";
 export * from "./auth-stub.ts";
 export * from "./args-hash.ts";
+export * from "./audit.ts";
+export * from "./auth.ts";

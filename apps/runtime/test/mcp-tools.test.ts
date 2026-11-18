@@ -14,7 +14,7 @@ afterEach(async () => {
 });
 
 async function connect(allowlist: string[], w = world()) {
-  const tools = await connectTools({ servers: w.urls, allowlist, headers: HEADERS, fetch: w.fetch });
+  const tools = await connectTools({ servers: w.urls, allowlist, authHeaders: async () => HEADERS, fetch: w.fetch });
   opened.push(tools);
   return { tools, w };
 }
@@ -68,5 +68,32 @@ describe("connectTools: виклики", () => {
     await notify.call({ search_id: "s-olena", message: "Привіт" }, { idempotencyKey: "run-1:3:0" });
     await notify.call({ search_id: "s-olena", message: "Привіт" }, { idempotencyKey: "run-1:3:0" });
     expect(w.store.outbox()).toHaveLength(1);
+  });
+});
+
+describe("connectTools: заголовки на КОЖЕН запит (етап 4)", () => {
+  it("authHeaders викликається на кожен HTTP-запит з іменем сервера — токен може змінюватись (новий run, новий exp)", async () => {
+    const w = world();
+    const seen: string[] = [];
+    let n = 0;
+    const tools = await connectTools({
+      servers: w.urls,
+      allowlist: ["relocation.get_search", "listings.get_listing"],
+      authHeaders: async (server) => {
+        seen.push(server);
+        n++;
+        return { "x-debug-sub": "olena", "x-debug-act": `agent:concierge@${n}` };
+      },
+      fetch: w.fetch,
+    });
+    opened.push(tools);
+    const before = seen.length;
+    await tools.get("relocation__get_search")!.call({ employee_id: "olena" }, { idempotencyKey: "r:1:0" });
+    await tools.get("relocation__get_search")!.call({ employee_id: "olena" }, { idempotencyKey: "r:2:0" });
+    expect(seen.slice(before)).toEqual(["relocation", "relocation"]);
+    expect(seen).toContain("listings");
+    // Другий виклик пішов уже з новими заголовками: агент у аудиті — з останнім лічильником.
+    const agents = w.audit.map((e) => e.agent);
+    expect(agents[0]).not.toBe(agents[1]);
   });
 });

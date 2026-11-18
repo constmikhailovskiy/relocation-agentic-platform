@@ -8,3 +8,4 @@ dist/
 evals/reports/
 firebase-debug.log
 .DS_Store
+.secrets/

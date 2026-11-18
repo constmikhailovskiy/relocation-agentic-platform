@@ -10,6 +10,7 @@ export interface AuditEvent {
   resource: string;
   decision: Decision["decision"];
   reason: string;
+  runId?: string;
 }
 
 /** Контекст виклику інструмента: де дані, хто питає, куди писати аудит. */
@@ -53,7 +54,10 @@ const FORBIDDEN_HINTS: Record<string, string> = {
 
 /** Запис аудиту для дій поза authorizeSearch (рішення людей щодо approvals). */
 export function writeAudit(ctx: Ctx, action: AuditEvent["action"], resource: string, decision: AuditEvent["decision"], reason: string): void {
-  ctx.audit?.({ action, actor: ctx.principal.sub, ...(ctx.principal.act && { agent: ctx.principal.act.sub }), resource, decision, reason });
+  ctx.audit?.({
+    action, actor: ctx.principal.sub, ...(ctx.principal.act && { agent: ctx.principal.act.sub }), resource, decision, reason,
+    ...(ctx.principal.runId && { runId: ctx.principal.runId }),
+  });
 }
 
 /** Principal → Actor: ролі беремо з довідника людей (етап 4 — з груп у JWT). */
@@ -93,6 +97,7 @@ export function authorizeSearch(
     actor: actor.sub,
     // Spread з умовою: поле `agent` з'являється лише тоді, коли act є (exactOptionalPropertyTypes не пускає `agent: undefined`).
     ...(actor.act && { agent: actor.act.sub }),
+    ...(ctx.principal.runId && { runId: ctx.principal.runId }),
     resource: search?.id ?? resourceHint,
     decision: decision.decision,
     reason: decision.reason,

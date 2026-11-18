@@ -12,6 +12,15 @@ export const RuntimeEnv = z.object({
   RELOCATION_URL: z.url().default("http://127.0.0.1:8789/mcp"),
   /** «Зараз» для системного промпту. Має збігатися з LISTINGS_NOW / RELOCATION_NOW серверів. */
   RUNTIME_NOW: z.preprocess(emptyAsUndefined, z.iso.datetime().optional()),
+  /** jwt — вхід через Keycloak і делеговані токени; debug — заглушка x-debug-* (сервери теж мають бути в debug). */
+  AUTH_MODE: z.enum(["jwt", "debug"]).default("jwt"),
+  IDP_ISSUER: z.url().default("http://127.0.0.1:8080/realms/relocation-sandbox"),
+  /** Публічний клієнт Keycloak для CLI. */
+  IDP_CLIENT_ID: z.string().default("relocation-cli"),
+  /** Приватний ключ STS (pnpm sts:keygen). Відносний — від кореня репо. */
+  RUNTIME_STS_KEY_PATH: z.string().default(".secrets/runtime-sts.private.jwk.json"),
+  /** Пароль демо-користувача для неінтерактивного запуску (pipe). Без нього CLI спитає. Лише пісочниця. */
+  DEMO_PASSWORD: z.preprocess(emptyAsUndefined, z.string().optional()),
 });
 export type RuntimeEnv = z.output<typeof RuntimeEnv>;
 

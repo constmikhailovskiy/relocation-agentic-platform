@@ -4,15 +4,15 @@ type Fetch = (url: string | URL | Request, init?: RequestInit) => Promise<Respon
 
 /**
  * Клієнт не-MCP маршруту relocation: POST /approvals/:id/confirm.
- * Заголовки — лише x-debug-sub (людина), БЕЗ x-debug-act: підтверджує не агент.
- * Етап 4: тут буде токен самого користувача зі studio, а не підпис runtime, — інакше runtime міг би «підтвердити» сам.
+ * Заголовки — ЛЮДИНИ (етап 4: `Authorization: Bearer <токен від IdP>`), а не делегований токен агента.
+ * Сервер приймає тут лише токени IdP: підписати замінник runtime не може.
  */
-export function relocationConfirmer(opts: { baseUrl: string; sub: string; fetch?: Fetch }): ConfirmFn {
+export function relocationConfirmer(opts: { baseUrl: string; authHeaders: () => Promise<Record<string, string>>; fetch?: Fetch }): ConfirmFn {
   const doFetch: Fetch = opts.fetch ?? fetch;
   return async (approvalId, argsHash) => {
     const res = await doFetch(`${opts.baseUrl}/approvals/${encodeURIComponent(approvalId)}/confirm`, {
       method: "POST",
-      headers: { "content-type": "application/json", "x-debug-sub": opts.sub },
+      headers: { "content-type": "application/json", ...(await opts.authHeaders()) },
       body: JSON.stringify({ argsHash }),
     });
     const body = (await res.json().catch(() => ({}))) as { error?: { code?: string; message?: string } };

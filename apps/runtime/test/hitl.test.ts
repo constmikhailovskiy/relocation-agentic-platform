@@ -23,7 +23,7 @@ async function setup(answer: boolean) {
   const tools = await connectTools({
     servers: { relocation: w.urls.relocation },
     allowlist: ["relocation.request_viewing"],
-    headers: { "x-debug-sub": "olena", "x-debug-act": "agent:concierge@1" },
+    authHeaders: async () => ({ "x-debug-sub": "olena", "x-debug-act": "agent:concierge@1" }),
     fetch: w.fetch,
   });
   opened.push(tools);
@@ -38,7 +38,7 @@ async function setup(answer: boolean) {
       shown.push(s);
       return answer;
     },
-    confirm: relocationConfirmer({ baseUrl: w.relocationBaseUrl, sub: "olena", fetch: spyFetch }),
+    confirm: relocationConfirmer({ baseUrl: w.relocationBaseUrl, authHeaders: async () => ({ "x-debug-sub": "olena" }), fetch: spyFetch }),
   });
   const tool = tools.get("relocation__request_viewing")!;
   const exec = (args: unknown = ARGS) => () => tool.call(args, { idempotencyKey: "run-1:1:0" });
