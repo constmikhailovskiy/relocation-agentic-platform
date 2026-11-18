@@ -1,4 +1,4 @@
-import { argsHash, assertTransition } from "@reloc/shared";
+import { assertTransition, viewingArgsHash } from "@reloc/shared";
 import { z } from "zod";
 import type { Approval } from "./store.ts";
 import { type Ctx, RelocationError, assertOpen, authorizeSearch, canRead, invalidInput, writeAudit } from "./context.ts";
@@ -47,7 +47,7 @@ export function requestViewing(ctx: Ctx, searchId: string, listingKey: unknown, 
 
   // Порядок слотів не важить: сортуємо до хешування, щоб [a,b] і [b,a] були тим самим запитом.
   const args = { searchId: search.id, listingKey: parsed.data.listingKey, slots: [...parsed.data.slots].sort() };
-  const hash = argsHash(args);
+  const hash = viewingArgsHash(args);
 
   // Лише СВІЙ запит: однаковий хеш у Тараса й Олени — це два різні запити від двох людей.
   const existing = ctx.store.findApproval(

@@ -21,3 +21,18 @@ function canonical(value: unknown): string {
 export function argsHash(args: Record<string, unknown>): string {
   return createHash("sha256").update(canonical(args)).digest("hex");
 }
+
+/** Аргументи запиту на перегляд у тому вигляді, у якому їх бачить людина при підтвердженні. */
+export interface ViewingArgs {
+  searchId: string;
+  listingKey: string;
+  slots: readonly string[];
+}
+
+/**
+ * Хеш запиту на перегляд. Слоти сортуємо: [a,b] і [b,a] — той самий запит.
+ * Цю функцію викликають і сервер relocation, і runtime — правило нормалізації одне на двох.
+ */
+export function viewingArgsHash({ searchId, listingKey, slots }: ViewingArgs): string {
+  return argsHash({ searchId, listingKey, slots: [...slots].sort() });
+}

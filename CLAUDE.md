@@ -28,6 +28,7 @@ pnpm gateway:key <name> # новий ключ клієнта gateway (у кон�
 pnpm cache-demo         # демо prompt caching через gateway
 pnpm listings           # MCP-сервер listings на 127.0.0.1:8788/mcp (principal-заглушка: заголовок x-debug-sub)
 pnpm relocation         # MCP-сервер relocation на 127.0.0.1:8789/mcp (та сама заглушка; x-debug-act — агент)
+pnpm chat --as olena    # CLI-чат з агентом Concierge (потрібні gateway, listings, relocation; --model mock — без звернень до Anthropic)
 ```
 
 ## Середовище
@@ -54,13 +55,16 @@ pnpm relocation         # MCP-сервер relocation на 127.0.0.1:8789/mcp (�
 packages/shared/   спільні контракти: zod-схеми, статуси, довідник Львова, AgentSpec, authorize (policy.ts), auth-заглушка
 apps/gateway/      LLM gateway (Hono): реєстр моделей, політики, PII, бюджети, ретраї, breaker, fallback, стрім
 mcp/listings/      MCP-сервер listings: адаптери OLX/ЛУН, дедуп, пошук, MCP-обгортка (SDK + Hono, stateless)
-mcp/relocation/    MCP-сервер relocation: 7 інструментів, права (RBAC/ReBAC/поля), HITL з args_hash, approvals, стор у пам'яті
+mcp/relocation/    MCP-сервер relocation: 7 інструментів, права (RBAC/ReBAC/поля), HITL з args_hash, approvals, стор у пам'яті;
+                   не-MCP маршрут POST /approvals/:id/confirm (підтвердження людиною)
+apps/runtime/      цикл агента, MCP-клієнт з allowlist, HITL-guard, клієнт gateway, CLI-чат
+agents/            специфікації агентів (concierge.yaml, формат AgentSpec)
 scripts/           генератор фікстур, gateway-key, cache-demo
 fixtures/          згенеровані дані OLX/ЛУН, люди, пошуки, traps.json
 docs/              case.md, interview-answers.md, stages/
 ```
 
-Майбутні: `apps/runtime` (етап 3), `agents/`, `evals/`, `infra/`.
+Майбутні: `evals/`, `infra/`.
 
 ## Статус
 
@@ -70,7 +74,8 @@ docs/              case.md, interview-answers.md, stages/
 | 1 — LLM gateway | готово; вправи 1–4 розв'язані; перевірка версії Node на старті |
 | 1, вправа 5 — Ollama | офлайн-частина готова; жива частина відкладена (потрібні Ollama й інтернет) |
 | 2 — MCP-сервери listings і relocation | **код готовий**: обидва сервери з усіма інструментами; `update_status` відхиляє недозволений перехід. `authorize` з таблицею з матриці ролей зроблено вже тут (у плані — етап 4). За користувачем: перевірка обох у MCP Inspector. Вправи розв'язані (`docs/stages/02-*-solutions.md`); відкрите рішення за користувачем — listings 7 (маскувати телефон в описі ще й у listings) |
-| 3–9 | за планом у `docs/case.md`, розділ «План» |
+| 3 — цикл агента + CLI-чат | **готово**: повний сценарій пройдено офлайн (`scenario.test.ts`) і наживо з `haiku` ($0.006 за сесію). Вправи 1–8 у `docs/stages/03-runtime.md` не розв'язані; інтерактивний TTY-режим ще не перевірено (лише pipe) |
+| 4–9 | за планом у `docs/case.md`, розділ «План» |
 
 ## Наступний крок: вправа 5, жива частина (локальна модель)
 
@@ -100,4 +105,15 @@ docs/              case.md, interview-answers.md, stages/
 - Прийняте правило (немає в case.md): статус міняють власник і relocation-менеджер; `hr_approval → secured` — лише менеджер.
 - Відмова: хто ресурсу не бачить — `not_found` (без enumeration); хто бачить, але дія не його — `forbidden` з підказкою.
 - Підтвердження перегляду (`confirmViewing`) і рішення щодо бюджету (`decideBudgetException`) — функції для runtime/UI, **не** інструменти.
-  Поки викликаються лише з тестів: етап 3 має додати для них окремий не-MCP маршрут; runtime рахує `argsHash` сам (`packages/shared`).
+  `confirmViewing` має маршрут `POST /approvals/:id/confirm` (етап 3); `decideBudgetException` — ще ні (дія HR, studio на етапі 8).
+
+## Етап 3 — коротко (деталі в docs/stages/03-runtime.md)
+
+- `apps/runtime`: `runTurn` (цикл), `connectTools` (allowlist зі специфікації), `viewingGuard` (HITL), `gatewayModel`, `createSession`, `chat.ts`.
+- Інструменти з високим ризиком — таблиця `HIGH_RISK_TOOLS` у runtime, не в YAML; без guard сесія не стартує.
+- HITL: питаємо ДО `request_viewing`; підтверджуємо хешем ПОКАЗАНОГО (`viewingArgsHash` у shared), не хешем з відповіді.
+- Ключ ідемпотентності `runId:step:index` — у `_meta`, генерує runtime. Один хід чату = один `runId`.
+- Відхилення від case.md: `relocation.update_status` в allowlist Concierge (інакше не дійти до `shortlist_ready`).
+- Тести без мережі: сценарна модель (`apps/runtime/test/fakes.ts`) + справжні сервери в пам'яті (`test/world.ts`).
+  Gateway-ний `mock` робить лише один виклик на повідомлення — для сценаріїв не годиться.
+- Живе демо: однакове «зараз» для всіх (`LISTINGS_NOW`, `RELOCATION_NOW`, `RUNTIME_NOW` = `2026-11-15T09:00:00.000Z`).

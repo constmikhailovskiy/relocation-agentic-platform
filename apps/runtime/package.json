@@ -1,0 +1,15 @@
+{
+  "name": "@reloc/runtime",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "chat": "tsx --disable-warning=ExperimentalWarning --env-file-if-exists=../../.env src/chat.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@reloc/shared": "workspace:*",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.0"
+  }
+}

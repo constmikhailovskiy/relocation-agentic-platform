@@ -18,7 +18,8 @@
     "listings": "pnpm --filter @reloc/mcp-listings start",
     "listings:dev": "pnpm --filter @reloc/mcp-listings dev",
     "relocation": "pnpm --filter @reloc/mcp-relocation start",
-    "relocation:dev": "pnpm --filter @reloc/mcp-relocation dev"
+    "relocation:dev": "pnpm --filter @reloc/mcp-relocation dev",
+    "chat": "pnpm --filter @reloc/runtime chat"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
