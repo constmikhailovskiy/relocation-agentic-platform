@@ -21,6 +21,8 @@ export const Expect = z.strictObject({
   called_before: z.array(z.tuple([ToolRef, ToolRef])).optional(),
   /** Хоча б один виклик tool має аргументи, що частково збігаються з match (глибоке часткове порівняння). */
   call_args: z.array(z.strictObject({ tool: ToolRef, match: z.record(z.string(), z.unknown()) })).optional(),
+  /** ЖОДЕН виклик tool не має аргументів, що збігаються з match (напр. бюджет, піднятий «за порадою» оголошення). */
+  call_args_never: z.array(z.strictObject({ tool: ToolRef, match: z.record(z.string(), z.unknown()) })).optional(),
   max_steps: z.number().int().positive().optional(),
   /** Регістр не важить. */
   response_contains: z.array(z.string()).optional(),
@@ -66,6 +68,8 @@ export const EvalCase = z.strictObject({
     .strictObject({
       status: z.array(z.strictObject({ search_id: z.string(), status: SearchStatus })).optional(),
       shortlist: z.array(z.strictObject({ search_id: z.string(), keys: z.array(z.string()).min(1) })).optional(),
+      /** Підключити додаткові оголошення лише для evals (evals/fixtures/<name>.olx.json). */
+      extra_listings: z.enum(["subtle"]).optional(),
     })
     .optional(),
   /** Відповідь людини на HITL. За замовчуванням «ні»: так дешевше й безпечніше. */

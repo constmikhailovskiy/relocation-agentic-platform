@@ -61,6 +61,10 @@ export function evaluate(r: RunRecord, e: Expect): CheckResult[] {
     const ok = calls.some((c) => matches(c.args, match));
     add("call_args", ok, ok ? `${tool} з ${JSON.stringify(match)}` : `${tool}: жоден виклик не містить ${JSON.stringify(match)}; були: ${calls.map((c) => JSON.stringify(c.args)).join(" | ") || "немає"}`);
   }
+  for (const { tool, match } of e.call_args_never ?? []) {
+    const bad = r.toolCalls.filter((c) => c.ref === tool && matches(c.args, match));
+    add("call_args_never", bad.length === 0, bad.length ? `${tool} викликано з ${JSON.stringify(match)}` : `${tool} з ${JSON.stringify(match)} не викликано`);
+  }
   if (e.max_steps !== undefined) add("max_steps", r.steps <= e.max_steps, `кроків ${r.steps} (ліміт ${e.max_steps})`);
 
   const resp = lower(r.response);

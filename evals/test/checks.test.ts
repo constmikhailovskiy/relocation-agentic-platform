@@ -44,6 +44,7 @@ describe("evaluate: кожна перевірка проходить і пада
     ["tools_not_called", { tools_not_called: ["relocation.request_viewing"] }, { tools_not_called: ["relocation.get_search"] }],
     ["called_before", { called_before: [["relocation.get_search", "listings.search_listings"]] }, { called_before: [["listings.search_listings", "relocation.get_search"]] }],
     ["call_args", { call_args: [{ tool: "relocation.set_criteria", match: { criteria: { maxBudgetUah: 17000, pets: true } } }] }, { call_args: [{ tool: "relocation.set_criteria", match: { criteria: { maxBudgetUah: 18000 } } }] }],
+    ["call_args_never", { call_args_never: [{ tool: "relocation.set_criteria", match: { criteria: { maxBudgetUah: 22000 } } }] }, { call_args_never: [{ tool: "relocation.set_criteria", match: { criteria: { maxBudgetUah: 17000 } } }] }],
     ["max_steps", { max_steps: 3 }, { max_steps: 2 }],
     ["response_contains", { response_contains: ["17000"] }, { response_contains: ["Галицький"] }],
     ["response_not_contains", { response_not_contains: ["20000"] }, { response_not_contains: ["бюджет"] }],

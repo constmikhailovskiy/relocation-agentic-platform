@@ -7,7 +7,7 @@ import { relocationConfirmer } from "../../apps/runtime/src/relocation-client.ts
 import { createSession, delegationHeaders } from "../../apps/runtime/src/session.ts";
 import type { ToolHandle, ToolSet } from "../../apps/runtime/src/tools.ts";
 import type { EvalCase, RunRecord, ToolCallRecord } from "./case.ts";
-import { EVAL_NOW, evalWorld, listingFacts } from "./world.ts";
+import { EVAL_NOW, evalWorld } from "./world.ts";
 
 /** Код помилки з тексту результату інструмента (той самий формат, що в серверів і runtime). */
 function errorCode(text: string): string {
@@ -46,7 +46,7 @@ function recording(tools: ToolSet, calls: ToolCallRecord[]): ToolSet {
  * Модель — ін'єкцією: справжня через gateway або сценарна в офлайн-тестах.
  */
 export async function runCase(c: EvalCase, spec: AgentSpec, model: CallModel): Promise<RunRecord> {
-  const world = evalWorld();
+  const world = evalWorld(c.setup?.extra_listings ? { extraListings: c.setup.extra_listings } : {});
   for (const s of c.setup?.shortlist ?? []) world.store.addShortlistItems(s.search_id, s.keys.map((listingKey) => ({ listingKey })));
   for (const s of c.setup?.status ?? []) world.store.setStatus(s.search_id, s.status);
 
@@ -55,7 +55,7 @@ export async function runCase(c: EvalCase, spec: AgentSpec, model: CallModel): P
   let hitlAsked = 0;
   const record: RunRecord = {
     caseId: c.id, outcome: "answer", response: "", steps: 0, costUsd: 0, toolCalls: calls, unknownTools, hitlAsked: 0,
-    audit: [], state: {}, listingFacts,
+    audit: [], state: {}, listingFacts: world.listingFacts,
   };
 
   let tools: ToolSet | undefined;

@@ -21,14 +21,33 @@ const fixtures = (name: string): unknown => JSON.parse(readFileSync(join(ROOT, "
 const traps = fixtures("traps.json") as { now: string; fxUsdUah: number; futurePosted: string[] };
 export const EVAL_NOW = traps.now;
 
-const catalog = buildCatalog({ olx: fixtures("listings.olx.json") as unknown[], lun: fixtures("listings.lun.json") as unknown[] }, { fxUsdUah: traps.fxUsdUah });
+const baseOlx = fixtures("listings.olx.json") as unknown[];
+const baseLun = fixtures("listings.lun.json") as unknown[];
+const catalog = buildCatalog({ olx: baseOlx, lun: baseLun }, { fxUsdUah: traps.fxUsdUah });
 const availability = fixtures("availability.json") as Availability;
 const future = new Set(traps.futurePosted);
 
+/**
+ * Додаткові оголошення ЛИШЕ для evals (evals/fixtures/<name>.olx.json): тонші пастки, яких немає в основних
+ * фікстурах. Кейс підключає їх явно (setup.extra_listings), тож інші кейси й тести етапів 0–4 не змінюються.
+ */
+export type ExtraListings = "subtle";
+const extraCatalogs = new Map<ExtraListings, typeof catalog>();
+function catalogFor(extra: ExtraListings | undefined): typeof catalog {
+  if (!extra) return catalog;
+  let c = extraCatalogs.get(extra);
+  if (!c) {
+    const more = JSON.parse(readFileSync(join(ROOT, "evals", "fixtures", `${extra}.olx.json`), "utf8")) as unknown[];
+    c = buildCatalog({ olx: [...baseOlx, ...more], lun: baseLun }, { fxUsdUah: traps.fxUsdUah });
+    extraCatalogs.set(extra, c);
+  }
+  return c;
+}
+
 /** Факти про оголошення для перевірки якості шортлиста — з каталогу, не зі слів моделі. */
-export function listingFacts(key: string): ReturnType<RunRecord["listingFacts"]> {
+export function listingFacts(key: string, cat: typeof catalog = catalog): ReturnType<RunRecord["listingFacts"]> {
   try {
-    const l = getListing(catalog, key);
+    const l = getListing(cat, key);
     return {
       priceUah: l.priceUah,
       petsAllowed: l.petsAllowed,
@@ -41,13 +60,14 @@ export function listingFacts(key: string): ReturnType<RunRecord["listingFacts"]>
   }
 }
 
-export function evalWorld() {
+export function evalWorld(opts: { extraListings?: ExtraListings } = {}) {
+  const cat = catalogFor(opts.extraListings);
   const store = RelocationStore.fromSeed({ searches: fixtures("searches.json"), employees: fixtures("employees.json") });
   const audit: (AuditEvent | AuditInput)[] = [];
   const relocation = createRelocationApp({ store, now: () => EVAL_NOW, audit: (e) => audit.push(e) }, { mcp: debugHeaderAuth, human: debugHeaderAuth });
   const listings = createListingsApp(
     {
-      catalog,
+      catalog: cat,
       availability,
       now: () => EVAL_NOW,
       audit: ({ tool, principal }) => audit.push({ action: `listings.${tool}`, actor: principal.sub, resource: "catalog", decision: "allow", reason: "public_catalog" }),
@@ -66,6 +86,7 @@ export function evalWorld() {
     fetch,
     urls: { listings: "http://listings.eval/mcp", relocation: "http://relocation.eval/mcp" },
     relocationBaseUrl: "http://relocation.eval",
+    listingFacts: (key: string) => listingFacts(key, cat),
   };
 }
 export type EvalWorld = ReturnType<typeof evalWorld>;
