@@ -43,3 +43,26 @@ describe("notify_employee", () => {
     expect(store.outbox()).toEqual([]);
   });
 });
+
+describe("ідемпотентність notify_employee (вправа 3)", () => {
+  it("той самий ключ → один лист; відповідь та сама", () => {
+    const a = notifyEmployee(ctx("taras"), "s-olena", { message: "Нові варіанти" }, { idempotencyKey: "run-7:step-3" });
+    const b = notifyEmployee(ctx("taras"), "s-olena", { message: "Нові варіанти" }, { idempotencyKey: "run-7:step-3" });
+    expect(b).toEqual(a);
+    expect(store.outbox()).toHaveLength(1);
+  });
+
+  it("різні ключі — два листи; без ключа — кожен виклик надсилає", () => {
+    notifyEmployee(ctx("taras"), "s-olena", { message: "1" }, { idempotencyKey: "k1" });
+    notifyEmployee(ctx("taras"), "s-olena", { message: "2" }, { idempotencyKey: "k2" });
+    notifyEmployee(ctx("taras"), "s-olena", { message: "3" });
+    notifyEmployee(ctx("taras"), "s-olena", { message: "3" });
+    expect(store.outbox()).toHaveLength(4);
+  });
+
+  it("ключ прив'язаний до пошуку: той самий ключ для іншого пошуку — окремий лист", () => {
+    notifyEmployee(ctx("taras"), "s-olena", { message: "x" }, { idempotencyKey: "k" });
+    notifyEmployee(ctx("taras"), "s-maksym", { message: "x" }, { idempotencyKey: "k" });
+    expect(store.outbox()).toHaveLength(2);
+  });
+});

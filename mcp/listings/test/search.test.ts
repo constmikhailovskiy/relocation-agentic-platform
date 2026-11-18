@@ -87,3 +87,18 @@ describe("Пошук: ранжування", () => {
     expect(top3.total).toBe(all.total);
   });
 });
+
+describe("межа дати заселення (вправа 5)", () => {
+  // Одна квартира з каталогу; міняємо їй лише дату. structuredClone — щоб не зіпсувати спільний каталог.
+  const base = structuredClone(catalog.listings[0]!);
+  const oneListing = (availableFrom: string) => ({ ...catalog, listings: [{ ...base, availableFrom }], aliasOf: new Map() });
+  const criteria = Criteria.parse({ maxBudgetUah: 200_000, moveInBy: "2026-12-15" });
+
+  it("вільна рівно в день moveInBy — підходить (межа включна)", () => {
+    expect(searchListings(oneListing("2026-12-15"), criteria, opts).total).toBe(1);
+  });
+
+  it("на день пізніше — ні", () => {
+    expect(searchListings(oneListing("2026-12-16"), criteria, opts).total).toBe(0);
+  });
+});

@@ -27,7 +27,8 @@ export type RelocationErrorCode =
   | "not_in_shortlist"
   | "wrong_status"
   | "args_mismatch"
-  | "already_decided";
+  | "already_decided"
+  | "expired";
 
 /** Помилка, яку побачить агент. Текст написаний для моделі: без деталей реалізації. */
 export class RelocationError extends Error {

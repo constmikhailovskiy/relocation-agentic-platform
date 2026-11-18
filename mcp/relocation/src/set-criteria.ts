@@ -1,4 +1,4 @@
-import { Criteria } from "@reloc/shared";
+import { Criteria, assertTransition } from "@reloc/shared";
 import { type Ctx, RelocationError, assertOpen, authorizeSearch, invalidInput } from "./context.ts";
 
 /**
@@ -28,5 +28,19 @@ export function setCriteria(ctx: Ctx, employeeId: string, input: unknown): { sea
   }
 
   ctx.store.updateCriteria(search.id, criteria);
+
+  // Діаграма: needs_attention → searching «нові критерії». Через assertTransition, а не напряму:
+  // TRANSITIONS лишається єдиним джерелом правди, навіть коли перехід робить не update_status.
+  if (search.status === "needs_attention") {
+    assertTransition(search.status, "searching");
+    ctx.store.changeStatus(search.id, {
+      from: search.status,
+      to: "searching",
+      reason: "Нові критерії",
+      by: ctx.principal.sub,
+      ...(ctx.principal.act && { agent: ctx.principal.act.sub }),
+      at: ctx.now(),
+    });
+  }
   return { searchId: search.id, criteria };
 }

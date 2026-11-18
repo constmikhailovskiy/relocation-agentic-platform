@@ -106,3 +106,28 @@ describe("confirmViewing: підтвердження людиною (не інс
     expect(errorOf(() => confirmViewing(ctx("olena"), req.approvalId, req.argsHash)).code).toBe("already_decided");
   });
 });
+
+describe("термін дії запиту на перегляд (вправа 2)", () => {
+  it("запит має expiresAt = now + 24 год", () => {
+    expect(requestViewing(ctx("olena", AGENT), "s-olena", "olx:1001", slots).expiresAt).toBe("2026-11-21T10:00:00.000Z");
+  });
+
+  it("підтвердження після терміну → expired; статус пошуку не змінився", () => {
+    const req = requestViewing(ctx("olena", AGENT), "s-olena", "olx:1001", slots);
+    const late = { ...ctx("olena"), now: () => "2026-11-21T10:00:00.001Z" };
+    expect(errorOf(() => confirmViewing(late, req.approvalId, req.argsHash)).code).toBe("expired");
+    expect(store.searchById("s-olena")?.status).toBe("shortlist_ready");
+  });
+
+  it("рівно в момент expiresAt ще можна", () => {
+    const req = requestViewing(ctx("olena", AGENT), "s-olena", "olx:1001", slots);
+    const edge = { ...ctx("olena"), now: () => "2026-11-21T10:00:00.000Z" };
+    expect(confirmViewing(edge, req.approvalId, req.argsHash).status).toBe("confirmed");
+  });
+
+  it("той самий запит після терміну створюється заново, а не повертає прострочений", () => {
+    const old = requestViewing(ctx("olena", AGENT), "s-olena", "olx:1001", slots);
+    const later = { ...ctx("olena", AGENT), now: () => "2026-11-21T12:00:00.000Z" };
+    expect(requestViewing(later, "s-olena", "olx:1001", slots).approvalId).not.toBe(old.approvalId);
+  });
+});

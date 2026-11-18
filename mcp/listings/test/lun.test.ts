@@ -69,3 +69,12 @@ describe("Адаптер ЛУН (вправа 1)", () => {
     expect(() => lunToListing(raw, opts)).toThrow(/lun:lun-479702/);
   });
 });
+
+describe("Адаптер ЛУН: обидві ціни заповнено (вправа 4)", () => {
+  it("береться гривня, без перерахунку з доларів", () => {
+    const raw = { ...rawById("lun-479702"), price_uah: 15000, price_usd: 400 };
+    const { listing } = lunToListing(raw, opts);
+    expect(listing.price).toEqual({ amount: 15000, currency: "UAH" });
+    expect(listing.priceUah).toBe(15000);
+  });
+});

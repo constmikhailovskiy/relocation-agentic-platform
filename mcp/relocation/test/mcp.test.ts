@@ -132,6 +132,18 @@ describe("інструменти запису крізь клієнт SDK", () =
   });
 });
 
+describe("ключ ідемпотентності через _meta (вправа 3)", () => {
+  it("runtime передає ключ у _meta, модель його не бачить у схемі; повтор → один лист", async () => {
+    const c = await connect("olena");
+    const { tools } = await c.listTools();
+    expect(Object.keys(tools.find((t) => t.name === "notify_employee")!.inputSchema.properties ?? {})).not.toContain("idempotency_key");
+    const req = { name: "notify_employee", arguments: { search_id: "s-olena", message: "Привіт" }, _meta: { idempotencyKey: "run-1:step-4" } };
+    await c.callTool(req);
+    await c.callTool(req);
+    expect(store.outbox()).toHaveLength(1);
+  });
+});
+
 describe("стан і principal", () => {
   it("стан спільний між екземплярами сервера (stateless MCP, але один стор на процес)", async () => {
     await call(await connect("olena"), "set_criteria", { employee_id: "olena", criteria: { maxBudgetUah: 16000 } });

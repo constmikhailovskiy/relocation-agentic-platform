@@ -84,3 +84,25 @@ describe("set_criteria: права і стан", () => {
     expect(errorOf(() => setCriteria(ctx("olena"), "olena", { maxBudgetUah: 15000 })).code).toBe("search_closed");
   });
 });
+
+describe("set_criteria: нові критерії виводять з needs_attention (вправа 1)", () => {
+  it("needs_attention → searching; перехід записано в історію з причиною", () => {
+    store.setStatus("s-olena", "needs_attention");
+    setCriteria(ctx("olena", "agent:concierge@7"), "olena", { maxBudgetUah: 19000 });
+    expect(store.searchById("s-olena")?.status).toBe("searching");
+    expect(store.statusHistory("s-olena")).toMatchObject([{ from: "needs_attention", to: "searching", by: "olena", agent: "agent:concierge@7" }]);
+  });
+
+  it("в інших статусах статус не змінюється і історія порожня", () => {
+    store.setStatus("s-olena", "shortlist_ready");
+    setCriteria(ctx("olena"), "olena", { maxBudgetUah: 19000 });
+    expect(store.searchById("s-olena")?.status).toBe("shortlist_ready");
+    expect(store.statusHistory("s-olena")).toEqual([]);
+  });
+
+  it("over_cap у needs_attention — статус лишається needs_attention", () => {
+    store.setStatus("s-olena", "needs_attention");
+    errorOf(() => setCriteria(ctx("olena"), "olena", { maxBudgetUah: 25000 }));
+    expect(store.searchById("s-olena")?.status).toBe("needs_attention");
+  });
+});

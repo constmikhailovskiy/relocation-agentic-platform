@@ -73,6 +73,16 @@ describe("tools/list — що бачить модель", () => {
 });
 
 describe("search_listings", () => {
+  it("limit понад стелю (51) → isError ще на валідації: кожен рядок результату — токени в контексті моделі (вправа 6)", async () => {
+    const { result } = await call(await connect(), "search_listings", { criteria: { maxBudgetUah: 20000 }, limit: 51 });
+    expect(result.isError).toBe(true);
+  });
+
+  it("limit рівно на стелі (50) — можна", async () => {
+    const { result } = await call(await connect(), "search_listings", { criteria: { maxBudgetUah: 20000 }, limit: 50 });
+    expect(result.isError).toBeFalsy();
+  });
+
   it("лише бюджет → працює; відповідь — items + total і в structuredContent, і текстом", async () => {
     const { result, data } = await call(await connect(), "search_listings", { criteria: { maxBudgetUah: 20000 } });
     expect(result.isError).toBeFalsy();

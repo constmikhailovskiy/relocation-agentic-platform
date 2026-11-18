@@ -95,6 +95,7 @@ const Outputs = {
     listingKey: z.string(),
     slots: z.array(z.string()),
     argsHash: z.string(),
+    expiresAt: z.string(),
   }),
   request_budget_exception: z.object({
     approvalId: z.string(),
@@ -194,7 +195,12 @@ export function createRelocationServer(deps: RelocationDeps, principal: Principa
       inputSchema: Inputs.notify_employee,
       outputSchema: Outputs.notify_employee,
     },
-    ({ search_id, message }) => handle(deps, "notify_employee", () => notifyEmployee(ctx, search_id, { message })),
+    // Другий аргумент обробника — `extra`: тут є `_meta` із запиту. Ключ ідемпотентності кладе туди runtime,
+    // тож модель його не бачить і не може ні забути, ні підробити.
+    ({ search_id, message }, extra) =>
+      handle(deps, "notify_employee", () =>
+        notifyEmployee(ctx, search_id, { message }, { ...(extra._meta?.idempotencyKey !== undefined && { idempotencyKey: extra._meta.idempotencyKey }) }),
+      ),
   );
 
   return server;

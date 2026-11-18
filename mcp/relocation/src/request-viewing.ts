@@ -1,6 +1,10 @@
 import { argsHash, assertTransition } from "@reloc/shared";
 import { z } from "zod";
+import type { Approval } from "./store.ts";
 import { type Ctx, RelocationError, assertOpen, authorizeSearch, canRead, invalidInput, writeAudit } from "./context.ts";
+
+/** Скільки чекаємо на підтвердження користувача. Після — запит недійсний, треба просити знову. */
+export const VIEWING_TTL_MS = 24 * 60 * 60 * 1000;
 
 /** Статуси, з яких можна просити перегляд: шортлист уже є. */
 const VIEWABLE = new Set(["shortlist_ready", "viewing_requested"]);
@@ -11,6 +15,7 @@ export interface ViewingRequest {
   listingKey: string;
   slots: string[];
   argsHash: string;
+  expiresAt: string;
 }
 
 /**
@@ -46,7 +51,12 @@ export function requestViewing(ctx: Ctx, searchId: string, listingKey: unknown, 
 
   // Лише СВІЙ запит: однаковий хеш у Тараса й Олени — це два різні запити від двох людей.
   const existing = ctx.store.findApproval(
-    (a) => a.kind === "viewing" && a.argsHash === hash && a.requestedBy === ctx.principal.sub && a.status === "pending_confirmation",
+    (a) =>
+      a.kind === "viewing" &&
+      a.argsHash === hash &&
+      a.requestedBy === ctx.principal.sub &&
+      a.status === "pending_confirmation" &&
+      a.expiresAt >= now, // прострочений не повертаємо: інакше повтор назавжди віддавав би мертвий запит
   );
   const approval =
     existing ??
@@ -58,10 +68,18 @@ export function requestViewing(ctx: Ctx, searchId: string, listingKey: unknown, 
       listingKey: args.listingKey,
       slots: args.slots,
       argsHash: hash,
+      // ISO-рядки в UTC порівнюються як рядки — тому і тут, і в confirmViewing досить `>=` / `>`.
+      expiresAt: new Date(Date.parse(now) + VIEWING_TTL_MS).toISOString(),
       status: "pending_confirmation",
     });
   if (approval.kind !== "viewing") throw new Error("unreachable");
-  return { approvalId: approval.id, status: approval.status, listingKey: approval.listingKey, slots: approval.slots, argsHash: approval.argsHash };
+  return view(approval);
+}
+
+/** Approval (внутрішній запис) → те, що бачить клієнт. */
+// Extract<U, X> — з union U лишити варіанти, сумісні з X (тут: лише запит на перегляд).
+function view(a: Extract<Approval, { kind: "viewing" }>): ViewingRequest {
+  return { approvalId: a.id, status: a.status, listingKey: a.listingKey, slots: a.slots, argsHash: a.argsHash, expiresAt: a.expiresAt };
 }
 
 /**
@@ -87,6 +105,10 @@ export function confirmViewing(ctx: Ctx, approvalId: string, shownHash: string):
   }
   if (ctx.principal.act) return deny("forbidden", "agent_cannot_confirm", "Підтверджує лише користувач, не агент");
   if (approval.status !== "pending_confirmation") throw new RelocationError("already_decided", "Запит уже підтверджено");
+  if (ctx.now() > approval.expiresAt) {
+    writeAudit(ctx, "relocation.confirm_viewing", approvalId, "deny", "expired");
+    throw new RelocationError("expired", "Запит на перегляд прострочений. Попроси перегляд ще раз.");
+  }
   if (approval.argsHash !== shownHash) {
     writeAudit(ctx, "relocation.confirm_viewing", approvalId, "deny", "args_mismatch");
     throw new RelocationError("args_mismatch", "Аргументи змінились після показу користувачу. Покажи запит ще раз.");
@@ -108,5 +130,5 @@ export function confirmViewing(ctx: Ctx, approvalId: string, shownHash: string):
   const done = ctx.store.decide(approval.id, "confirmed", ctx.principal.sub);
   writeAudit(ctx, "relocation.confirm_viewing", approvalId, "allow", "requester");
   if (done.kind !== "viewing") throw new Error("unreachable");
-  return { approvalId: done.id, status: done.status, listingKey: done.listingKey, slots: done.slots, argsHash: done.argsHash };
+  return view(done);
 }

@@ -219,7 +219,7 @@ MCP Inspector (готовність етапу за `case.md` — «усі ін�
 
 ## Вправи
 
-Розв'язки з поясненнями: [02-listings-solutions.md](02-listings-solutions.md) (вправи 1–3 — готово).
+Розв'язки з поясненнями: [02-listings-solutions.md](02-listings-solutions.md) (усі сім; у вправі 7 — рекомендація, рішення за тобою).
 
 1. **Адаптер ЛУН.** Реалізуй `lunToListing` у `mcp/listings/src/adapters/lun.ts`, щоб зазеленіли
    тести в `lun.test.ts`. Зразок — `olxToListing`. Що відрізняється: поверх рядком `"1/10"`, район

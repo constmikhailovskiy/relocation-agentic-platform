@@ -16,7 +16,7 @@
 | `set_criteria(employee_id, criteria)` | зберегти критерії | бюджет понад ліміт компанії → `over_cap` з підказкою |
 | `save_shortlist(search_id, items)` | додати в шортлист | ідемпотентний за `(search_id, listing_key)` |
 | `update_status(search_id, to, reason)` | змінити статус | лише переходи з `TRANSITIONS`; у `secured` — лише relocation-менеджер; причина — в історію статусів |
-| `request_viewing(search_id, listing_key, slots)` | попросити перегляд | лише з шортлиста; створює `pending_confirmation` з `args_hash`, нічого не надсилає |
+| `request_viewing(search_id, listing_key, slots)` | попросити перегляд | лише з шортлиста; створює `pending_confirmation` з `args_hash` і терміном 24 год, нічого не надсилає |
 | `request_budget_exception(search_id, amount_uah, reason)` | попросити виняток з ліміту | створює `pending`; повтор повертає той самий запит |
 | `notify_employee(search_id, message)` | повідомити | адресата в схемі немає — лише власник пошуку |
 
@@ -115,7 +115,7 @@ POST /mcp ──► principalFromHeaders ──► createRelocationServer(deps, 
 - `request_budget_exception` — поки є свій `pending`, повтор повертає його ж (без спаму в HR).
   Ключ ідемпотентності включає автора: інакше запит Тараса повернувся б Олені, а схвалити його Тарас не
   може (SoD) — запит завис би назавжди. Цей баг знайшов рев'ю, тест на нього є.
-- `notify_employee` — **не** ідемпотентний (вправа 3).
+- `notify_employee` — за ключем ідемпотентності з `_meta` (його генерує runtime, не модель; вправа 3).
 
 ## MCP-обгортка: чим відрізняється від listings
 
@@ -167,7 +167,7 @@ POST /mcp ──► principalFromHeaders ──► createRelocationServer(deps, 
 
 ## Вправи
 
-Розв'язки з поясненнями: [02-relocation-solutions.md](02-relocation-solutions.md).
+Розв'язки з поясненнями: [02-relocation-solutions.md](02-relocation-solutions.md) (усі шість; 1–3 і 6 — у коді, 4–5 — рекомендації).
 
 1. **(міні) Нові критерії виводять з `needs_attention`.** На діаграмі `needs_attention → searching` підписано
    «нові критерії». Напиши тест у `set-criteria.test.ts`: після `set_criteria` пошук у `needs_attention`

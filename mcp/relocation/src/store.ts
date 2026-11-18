@@ -17,7 +17,7 @@ export type Approval = {
   agent?: string;
   decidedBy?: string;
 } & (
-  | { kind: "viewing"; listingKey: string; slots: string[]; argsHash: string; status: "pending_confirmation" | "confirmed" }
+  | { kind: "viewing"; listingKey: string; slots: string[]; argsHash: string; expiresAt: string; status: "pending_confirmation" | "confirmed" }
   | { kind: "budget_exception"; amountUah: number; reason: string; status: "pending" | "approved" | "rejected" }
 );
 
@@ -53,6 +53,8 @@ export class RelocationStore {
   private readonly approvals = new Map<string, Approval>();
   private readonly messages: OutboxMessage[] = [];
   private readonly history = new Map<string, StatusChange[]>();
+  /** Ключі ідемпотентності листів: `${searchId}\u0000${key}` → відповідь першого виклику. */
+  private readonly sentKeys = new Map<string, { sent: true; to: string }>();
   private nextApprovalId = 1;
 
   private constructor(searches: readonly Search[], employees: readonly Employee[]) {
@@ -133,6 +135,15 @@ export class RelocationStore {
 
   send(message: OutboxMessage): void {
     this.messages.push(message);
+  }
+
+  /** Відповідь, уже видана для цього ключа (або undefined). У SQLite — таблиця з PRIMARY KEY (search_id, key). */
+  sentWithKey(searchId: string, key: string): { sent: true; to: string } | undefined {
+    return this.sentKeys.get(`${searchId}\u0000${key}`);
+  }
+
+  rememberKey(searchId: string, key: string, result: { sent: true; to: string }): void {
+    this.sentKeys.set(`${searchId}\u0000${key}`, result);
   }
 
   outbox(): readonly OutboxMessage[] {
