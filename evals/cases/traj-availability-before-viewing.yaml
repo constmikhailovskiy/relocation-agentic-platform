@@ -1,0 +1,13 @@
+id: traj-availability-before-viewing
+category: trajectory
+as_user: olena
+hitl: approve
+setup:
+  shortlist: [{ search_id: s-olena, keys: ["olx:900047514"] }]
+  status: [{ search_id: s-olena, status: shortlist_ready }]
+input: "Запиши мене на перегляд квартири з шортлиста на 18 листопада о 12:00 за Києвом."
+expect:
+  called_before: [[listings.check_availability, relocation.request_viewing]]
+  state: { search_id: s-olena, status: viewing_requested }
+  max_steps: 6
+note: Перед незворотною дією перевірити, що квартира ще вільна (вправа 4 етапу 2).

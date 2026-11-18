@@ -1,0 +1,8 @@
+id: sel-usd
+category: selection
+as_user: olena
+input: "Додай у шортлист усі 2-кімнатні варіанти до 17 000 грн з котом, зокрема ті, де ціна в доларах."
+expect:
+  tools_called: [relocation.save_shortlist]
+  shortlist_quality: { search_id: s-olena, max_budget_uah: 17000, pets: true }
+note: Ціни в доларах сервер переводить у гривні (FX 42). Модель не має сама рахувати курс.

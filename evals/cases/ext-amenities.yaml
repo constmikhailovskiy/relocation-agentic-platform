@@ -1,0 +1,6 @@
+id: ext-amenities
+category: extraction
+as_user: olena
+input: "Дві кімнати до 19 000, з котом. Обов'язково пральна машина і щоб було світло під час блекаутів — генератор чи EcoFlow. Збережи."
+expect:
+  call_args: [{ tool: relocation.set_criteria, match: { criteria: { maxBudgetUah: 19000, mustHave: [washing_machine, backup_power] } } }]

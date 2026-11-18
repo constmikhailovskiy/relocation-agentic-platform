@@ -79,11 +79,11 @@ describe("Повний сценарій Concierge (етап 3: готово, к�
     expect(asked).toEqual([{ searchId: "s-olena", listingKey: key(), slots: [SLOT] }]);
   });
 
-  it("усі виклики агента в аудиті — від імені Олени через concierge@7; підтвердження — Олена без агента", async () => {
+  it("усі виклики агента в аудиті — від імені Олени через concierge@<версія>; підтвердження — Олена без агента", async () => {
     const { w, session } = await setup(true);
     await session.send("давай");
     const agentEvents = w.audit.filter((e) => e.action !== "relocation.confirm_viewing");
-    expect(agentEvents.every((e) => e.actor === "olena" && e.agent === "agent:concierge@7")).toBe(true);
+    expect(agentEvents.every((e) => e.actor === "olena" && e.agent === `agent:concierge@${spec.version}`)).toBe(true);
     expect(w.audit.find((e) => e.action === "relocation.confirm_viewing")).toMatchObject({ actor: "olena", decision: "allow" });
     expect(w.audit.find((e) => e.action === "relocation.confirm_viewing")?.agent).toBeUndefined();
   });
@@ -130,6 +130,6 @@ describe("createSession: запуск без HITL для інструмента 
 
 describe("delegationHeaders", () => {
   it("sub — людина, act — агент із версією", () => {
-    expect(delegationHeaders("olena", spec)).toEqual({ "x-debug-sub": "olena", "x-debug-act": "agent:concierge@7" });
+    expect(delegationHeaders("olena", spec)).toEqual({ "x-debug-sub": "olena", "x-debug-act": `agent:concierge@${spec.version}` });
   });
 });

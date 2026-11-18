@@ -60,7 +60,7 @@ describe("JWT наскрізно: Олена", () => {
     expect(w.store.searchById("s-olena")?.status).toBe("viewing_requested");
     const byAgent = w.audit.filter((e) => e.agent);
     expect(byAgent.length).toBeGreaterThan(0);
-    expect(byAgent.every((e) => e.actor === "olena" && e.agent === "agent:concierge@7" && e.runId === "run-1")).toBe(true);
+    expect(byAgent.every((e) => e.actor === "olena" && e.agent === `agent:concierge@${spec.version}` && e.runId === "run-1")).toBe(true);
     expect(w.audit.find((e) => e.action === "relocation.confirm_viewing")).toMatchObject({ actor: "olena", decision: "allow" });
   });
 

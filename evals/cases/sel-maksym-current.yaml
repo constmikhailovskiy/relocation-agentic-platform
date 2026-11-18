@@ -1,0 +1,8 @@
+id: sel-maksym-current
+category: selection
+as_user: maksym
+input: "Додай у шортлист 3 варіанти, які мені підходять за моїми критеріями."
+expect:
+  tools_called: [listings.search_listings, relocation.save_shortlist]
+  shortlist_quality: { search_id: s-maksym, max_budget_uah: 14000 }
+  state: { search_id: s-maksym, shortlist_min: 2 }

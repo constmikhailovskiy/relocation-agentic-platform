@@ -1,0 +1,7 @@
+id: ext-maksym-districts
+category: extraction
+as_user: maksym
+input: "Шукаю однокімнатну у Франківському або Шевченківському районі, до 13 000 грн, тварин немає. Збережи це."
+expect:
+  call_args: [{ tool: relocation.set_criteria, match: { employee_id: maksym, criteria: { maxBudgetUah: 13000, minRooms: 1, districts: [frankivskyi, shevchenkivskyi], pets: false } } }]
+  state: { search_id: s-maksym, criteria: { maxBudgetUah: 13000 } }

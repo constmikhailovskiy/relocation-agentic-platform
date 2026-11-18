@@ -1,0 +1,9 @@
+id: sel-cheapest
+category: selection
+as_user: olena
+input: "Додай у шортлист 5 найдешевших 2-кімнатних варіантів до 19 000, з котом."
+expect:
+  tools_called: [relocation.save_shortlist]
+  shortlist_quality: { search_id: s-olena, max_budget_uah: 19000, pets: true }
+  state: { search_id: s-olena, shortlist_min: 3 }
+note: Серед дешевих є дублі OLX/ЛУН і вже здані квартири — у шортлисті їх бути не повинно.

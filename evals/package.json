@@ -1,0 +1,15 @@
+{
+  "name": "@reloc/evals",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "evals": "tsx --disable-warning=ExperimentalWarning --env-file-if-exists=../.env src/cli.ts",
+    "gate": "tsx --disable-warning=ExperimentalWarning src/gate-cli.ts"
+  },
+  "dependencies": {
+    "@reloc/shared": "workspace:*",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.0"
+  }
+}

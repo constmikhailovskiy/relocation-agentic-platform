@@ -30,6 +30,8 @@ pnpm listings           # MCP-сервер listings на 127.0.0.1:8788/mcp (JWT
 pnpm relocation         # MCP-сервер relocation на 127.0.0.1:8789/mcp (те саме; /approvals — лише токени Keycloak)
 pnpm chat --as olena    # CLI-чат з агентом Concierge (потрібні gateway, listings, relocation, Keycloak; --model mock — без звернень до Anthropic)
 pnpm sts:keygen         # ключі runtime-STS у .secrets/ (один раз; у git не йдуть)
+pnpm evals              # eval-кейси зі справжньою моделлю (ANTHROPIC_API_KEY), ≈ $0.075 повний прогін
+pnpm evals:gate         # порівняти evals/reports/report.json з evals/baseline.json (код 1 — блок)
 pnpm audit:verify       # перевірити хеш-ланцюжок data/audit.db; --run <id> — події одного запуску
 docker compose -f infra/docker-compose.yml up -d keycloak   # Keycloak на 127.0.0.1:8080, realm relocation-sandbox
 ```
@@ -68,8 +70,8 @@ docs/              case.md, interview-answers.md, stages/
 ```
 
 infra/             docker-compose (Keycloak), realm relocation-sandbox
-
-Майбутні: `evals/`.
+evals/             31 eval-кейс (YAML), ранер, перевірки, judge, гейт; baseline.json — з main
+.github/workflows/ ci.yml: офлайн-тести + evals-гейт на PR
 
 ## Статус
 
@@ -81,7 +83,8 @@ infra/             docker-compose (Keycloak), realm relocation-sandbox
 | 2 — MCP-сервери listings і relocation | **код готовий**: обидва сервери з усіма інструментами; `update_status` відхиляє недозволений перехід. `authorize` з таблицею з матриці ролей зроблено вже тут (у плані — етап 4). За користувачем: перевірка обох у MCP Inspector. Вправи розв'язані (`docs/stages/02-*-solutions.md`); відкрите рішення за користувачем — listings 7 (маскувати телефон в описі ще й у listings) |
 | 3 — цикл агента + CLI-чат | **готово**: повний сценарій пройдено офлайн (`scenario.test.ts`) і наживо з `haiku` ($0.006 за сесію). Вправи 1–8 у `docs/stages/03-runtime.md` не розв'язані; інтерактивний TTY-режим ще не перевірено (лише pipe) |
 | 4 — SSO, делегування, аудит | **готово**: аудит з хеш-ланцюжком і `audit:verify`; JWT у серверах; runtime як STS; підтвердження лише токеном Keycloak. Наживо з Keycloak і `haiku`: Іван не бачить бюджет, Богдан не запускає Concierge, Олена — повний сценарій. Вправи 1–6 у `docs/stages/04-security.md` не розв'язані |
-| 5–9 | за планом у `docs/case.md`, розділ «План» |
+| 5 — evals + гейт у CI | **код готовий; критерій «послаблений untrustedText → PR заблоковано» НЕ виконується** на поточних пастках (haiku + серверні шари стійкі). Гейт ловить послаблення інших інструкцій (v7 без check_availability → блок) і регресію коду захисту (без проєкції полів → блок). Workflow ще не запускався. Рішення за користувачем (вправи 1–2). Потрібні: секрет `ANTHROPIC_API_KEY` у GitHub, push, demo-PR. Judge не відкалібровано |
+| 6–9 | за планом у `docs/case.md`, розділ «План» |
 
 ## Наступний крок: вправа 5, жива частина (локальна модель)
 
@@ -131,3 +134,10 @@ infra/             docker-compose (Keycloak), realm relocation-sandbox
 - Runtime: `userVerifier` (токен IdP → `VerifiedUser` з брендом), `assertAudience`, `createSts`, `delegatedAuthHeaders` — токен на КОЖЕН запит.
 - Ролі: Keycloak (для audience в runtime) = довідник людей (для `authorize` на сервері); тест realm-у тримає їх однаковими. Сервер ролям від runtime не вірить.
 - Демо-пароль пісочниці Keycloak: `sandbox` (не секрет; лише 127.0.0.1).
+
+## Етап 5 — коротко (деталі в docs/stages/05-evals.md)
+
+- `pnpm test` лишається офлайн; evals зі справжньою моделлю — окрема команда і окремий job у CI.
+- Кожен кейс має позитивну перевірку; самоперевірка: агент «Готово.» провалює всі кейси.
+- Security-кейси ×3 і 100%; базова лінія в CI — з базової гілки.
+- `concierge` v8: `check_availability` перед переглядом; про іншого працівника — `get_search` з його id.

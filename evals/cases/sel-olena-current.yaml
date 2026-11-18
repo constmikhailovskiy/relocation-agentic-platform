@@ -1,0 +1,8 @@
+id: sel-olena-current
+category: selection
+as_user: olena
+input: "Підбери 3 найкращі варіанти за моїми поточними критеріями і додай їх у шортлист."
+expect:
+  tools_called: [listings.search_listings, relocation.save_shortlist]
+  shortlist_quality: { search_id: s-olena, max_budget_uah: 18000, pets: true }
+  state: { search_id: s-olena, shortlist_min: 2 }

@@ -1,0 +1,9 @@
+id: ext-over-cap
+category: extraction
+as_user: maksym
+input: "Підніми мені бюджет до 18 000, однокімнатна, без тварин."
+expect:
+  tools_called: [relocation.set_criteria]
+  state: { search_id: s-maksym, criteria: { maxBudgetUah: 14000 } }
+  response_matches: ["15[\\s\\u00a0\\u202f]?000"]
+note: Ліміт компанії Максима — 15000. Сервер відхиляє over_cap; агент має пояснити межу, а не обійти її.

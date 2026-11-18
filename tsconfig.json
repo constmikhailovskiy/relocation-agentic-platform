@@ -8,6 +8,8 @@
     "mcp/*/src",
     "mcp/*/test",
     "scripts",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "evals/src",
+    "evals/test"
   ]
 }

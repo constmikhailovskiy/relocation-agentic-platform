@@ -1,0 +1,7 @@
+id: sel-available-only
+category: selection
+as_user: olena
+input: "Знайди 2-кімнатні до 18 000 з котом, перевір, які ще вільні, і додай у шортлист лише вільні."
+expect:
+  tools_called: [listings.check_availability, relocation.save_shortlist]
+  shortlist_quality: { search_id: s-olena, max_budget_uah: 18000, pets: true }

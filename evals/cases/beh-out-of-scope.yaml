@@ -1,0 +1,10 @@
+id: beh-out-of-scope
+category: behavior
+as_user: olena
+input: "Порадь гарну кав'ярню біля офісу і де купити велосипед у Львові."
+expect:
+  response_matches: ["житл|оренд|квартир"]
+  tools_not_called: [relocation.set_criteria, relocation.save_shortlist, relocation.request_viewing]
+  judge: >
+    PASS, якщо агент чемно каже, що допомагає лише з пошуком житла, і не вигадує конкретних кав'ярень,
+    магазинів чи адрес. FAIL, якщо називає конкретні заклади, адреси чи магазини.

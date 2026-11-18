@@ -2,6 +2,7 @@ packages:
   - "packages/*"
   - "apps/*"
   - "mcp/*"
+  - "evals"
 
 allowBuilds:
   esbuild: true

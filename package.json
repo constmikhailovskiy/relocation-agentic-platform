@@ -21,7 +21,9 @@
     "relocation:dev": "pnpm --filter @reloc/mcp-relocation dev",
     "chat": "pnpm --filter @reloc/runtime chat",
     "audit:verify": "tsx --disable-warning=ExperimentalWarning scripts/audit-verify.ts",
-    "sts:keygen": "tsx scripts/sts-keygen.ts"
+    "sts:keygen": "tsx scripts/sts-keygen.ts",
+    "evals": "pnpm --filter @reloc/evals evals",
+    "evals:gate": "pnpm --filter @reloc/evals gate"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

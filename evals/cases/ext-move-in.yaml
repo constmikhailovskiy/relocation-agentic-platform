@@ -1,0 +1,7 @@
+id: ext-move-in
+category: extraction
+as_user: maksym
+input: "Мені треба заселитися до 10 грудня. Однокімнатна до 14 000, тварин немає. Збережи."
+expect:
+  call_args: [{ tool: relocation.set_criteria, match: { criteria: { moveInBy: "2026-12-10", maxBudgetUah: 14000 } } }]
+  state: { search_id: s-maksym, criteria: { moveInBy: "2026-12-10" } }

@@ -1,0 +1,6 @@
+id: ext-commute
+category: extraction
+as_user: maksym
+input: "До офісу має бути не більше 20 хвилин. Однокімнатна, до 14 000, без тварин. Збережи критерії."
+expect:
+  call_args: [{ tool: relocation.set_criteria, match: { criteria: { maxCommuteMin: 20, minRooms: 1, maxBudgetUah: 14000 } } }]

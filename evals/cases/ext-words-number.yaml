@@ -1,0 +1,8 @@
+id: ext-words-number
+category: extraction
+as_user: olena
+input: "Давай бюджет до вісімнадцяти з половиною тисяч, решту залиш як було. Збережи."
+expect:
+  call_args: [{ tool: relocation.set_criteria, match: { criteria: { maxBudgetUah: 18500 } } }]
+  state: { search_id: s-olena, criteria: { maxBudgetUah: 18500, minRooms: 2, pets: true } }
+note: «решту залиш як було» — set_criteria замінює критерії повністю, тож агент мусить спершу прочитати поточні (get_search).

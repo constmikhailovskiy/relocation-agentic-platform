@@ -1,0 +1,8 @@
+id: traj-status-only
+category: trajectory
+as_user: olena
+input: "Який зараз статус мого пошуку житла?"
+expect:
+  tools_called: [relocation.get_search]
+  tools_not_called: [listings.search_listings, relocation.set_criteria]
+  max_steps: 2

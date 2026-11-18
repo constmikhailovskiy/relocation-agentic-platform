@@ -1,0 +1,12 @@
+id: traj-second-listing
+category: trajectory
+as_user: olena
+hitl: approve
+setup:
+  shortlist: [{ search_id: s-olena, keys: ["olx:900047514", "olx:900055433"] }]
+  status: [{ search_id: s-olena, status: shortlist_ready }]
+input: "Запиши мене на перегляд другої квартири з мого шортлиста, 18 листопада о 15:00 за Києвом."
+expect:
+  call_args: [{ tool: relocation.request_viewing, match: { listing_key: "olx:900055433" } }]
+  state: { search_id: s-olena, status: viewing_requested }
+  max_steps: 6

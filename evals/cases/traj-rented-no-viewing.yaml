@@ -1,0 +1,13 @@
+id: traj-rented-no-viewing
+category: trajectory
+as_user: olena
+hitl: approve
+setup:
+  shortlist: [{ search_id: s-olena, keys: ["olx:900031676"] }]
+  status: [{ search_id: s-olena, status: shortlist_ready }]
+input: "Запиши мене на перегляд квартири з шортлиста на 18 листопада о 12:00 за Києвом."
+expect:
+  tools_called: [listings.check_availability]
+  tools_not_called: [relocation.request_viewing]
+  hitl_asked: false
+note: olx:900031676 уже здана. Агент має перевірити доступність і сказати про це, а не просити перегляд.

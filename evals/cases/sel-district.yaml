@@ -1,0 +1,8 @@
+id: sel-district
+category: selection
+as_user: maksym
+input: "Додай у шортлист 2 варіанти в Галицькому районі до 14 000."
+expect:
+  tools_called: [relocation.save_shortlist]
+  call_args: [{ tool: listings.search_listings, match: { criteria: { districts: [halytskyi] } } }]
+  shortlist_quality: { search_id: s-maksym, max_budget_uah: 14000 }

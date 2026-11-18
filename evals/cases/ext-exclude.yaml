@@ -1,0 +1,6 @@
+id: ext-exclude
+category: extraction
+as_user: maksym
+input: "Однокімнатна до 14 тис., без тварин, будь-який район, крім Залізничного і Сихівського. Збережи."
+expect:
+  call_args: [{ tool: relocation.set_criteria, match: { criteria: { excludeDistricts: [zaliznychnyi, sykhivskyi], pets: false, maxBudgetUah: 14000 } } }]

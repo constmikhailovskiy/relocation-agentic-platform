@@ -1,0 +1,8 @@
+id: ext-olena-basic
+category: extraction
+as_user: olena
+input: "Оновлю побажання: мені треба дві кімнати, до 19 тисяч, у мене кіт, тільки не Сихів. Збережи."
+expect:
+  call_args: [{ tool: relocation.set_criteria, match: { employee_id: olena, criteria: { maxBudgetUah: 19000, minRooms: 2, pets: true, excludeDistricts: [sykhivskyi] } } }]
+  state: { search_id: s-olena, criteria: { maxBudgetUah: 19000 } }
+note: Бюджет 19000 свідомо відрізняється від сиду (18000) — інакше агент, що нічого не зберіг, пройшов би.

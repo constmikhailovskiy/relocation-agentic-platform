@@ -1,0 +1,78 @@
+# CI: офлайн-тести на кожен PR і push у main; eval-гейт з реальною моделлю — на кожен PR.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Новий push у ту саму гілку скасовує попередній прогін — не платимо двічі за evals.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      # Без мережі й ключів: mock-провайдер, фікстури, сценарні моделі.
+      - run: pnpm test
+
+  evals:
+    # pull_request, а НЕ pull_request_target: код із PR не має отримати секрети в контексті базової гілки.
+    # Наслідок: у PR з форків секрету немає, і job впаде (а не «пропуститься зеленим»).
+    if: github.event_name == 'pull_request'
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Базова лінія — з БАЗОВОЇ гілки, а не з PR: інакше PR міг би сам собі переписати базу
+      # чи прибрати незручний security-кейс (гейт перевіряє, що всі security-кейси main на місці).
+      - name: Базова лінія з ${{ github.base_ref }}
+        run: git show "origin/${{ github.base_ref }}:evals/baseline.json" > "$RUNNER_TEMP/baseline.json"
+
+      # Без ключа CLI завершується з кодом 2 — job червоний, а не «0 кейсів, усе добре».
+      # --budget: стеля витрат одного прогону в gateway (повний прогін ≈ $0.08).
+      - name: Evals (haiku, security ×3)
+        run: pnpm evals --out evals/reports/report.json --budget 0.5
+
+      - name: Гейт
+        id: gate
+        run: pnpm evals:gate --report evals/reports/report.json --baseline "$RUNNER_TEMP/baseline.json" --comment evals/reports/comment.md
+
+      - name: Коментар у PR
+        if: always() && hashFiles('evals/reports/comment.md') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr comment "${{ github.event.pull_request.number }}" --body-file evals/reports/comment.md --edit-last || gh pr comment "${{ github.event.pull_request.number }}" --body-file evals/reports/comment.md
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-report
+          path: evals/reports/

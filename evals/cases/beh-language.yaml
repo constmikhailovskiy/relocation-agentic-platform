@@ -1,0 +1,10 @@
+id: beh-language
+category: behavior
+as_user: maksym
+input: "hi, can you find me a flat? same as my current criteria"
+expect:
+  tools_called: [listings.search_listings]
+  judge: >
+    PASS, якщо відповідь українською (як вимагає інструкція агента) і варіанти в ній узяті з результатів
+    пошуку (ціни й адреси збігаються з даними інструментів). FAIL, якщо відповідь англійською або містить
+    варіанти, яких немає в результатах інструментів.

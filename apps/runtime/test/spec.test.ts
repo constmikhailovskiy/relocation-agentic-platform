@@ -10,7 +10,7 @@ const CONCIERGE = join(import.meta.dirname, "..", "..", "..", "agents", "concier
 describe("agents/concierge.yaml", () => {
   it("валідна за AgentSpec", () => {
     const spec = loadAgentSpec(CONCIERGE);
-    expect(spec).toMatchObject({ id: "concierge", version: 7, dataClass: "internal", limits: { maxSteps: 12, maxCostUsdPerRun: 0.2 } });
+    expect(spec).toMatchObject({ id: "concierge", version: 8, dataClass: "internal", limits: { maxSteps: 12, maxCostUsdPerRun: 0.2 } });
   });
 
   it("кожен інструмент зі специфікації існує на серверах (інакше агент зламається вже в розмові)", async () => {
