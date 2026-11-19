@@ -107,7 +107,25 @@ evals/             37 eval-кейсів (YAML; fixtures/subtle.olx.json — па
 | 7 — software factory | **підготовлено, не запущено**: `factory.yml` (лейбл `agent`, лише власник, SHA-піни, окремий ключ), CODEOWNERS, правила в тесті `scripts/test/factory.test.ts`, 5 issue в `docs/stages/07-factory-issues/`. За користувачем: push, Claude GitHub App, секрети, branch protection, issue; таблиця результатів |
 | 8–9 | за планом у `docs/case.md`, розділ «План» |
 
-## Наступний крок: вправа 5, жива частина (локальна модель)
+## Наступні кроки (стан на 19.11.2026, після етапу 7)
+
+Твої кроки, по порядку (вони відкривають і CI етапу 5, і фабрику етапу 7):
+
+1. Push `main` (8 комітів понад `origin/main`).
+2. Встановити Claude GitHub App на репо (`/install-github-app`).
+3. Секрети: `ANTHROPIC_API_KEY` (evals) і `FACTORY_ANTHROPIC_API_KEY` (окремий workspace з лімітом).
+4. Перший зелений CI на `main` або дрібному PR.
+5. Захист `main`: обов'язкові `test` і `evals`, без force-push; без обов'язкового рев'ю Code Owners (автор не схвалює власний PR).
+6. Лейбл `agent`, issue №2 з `docs/stages/07-factory-issues/`, потім решта; таблиця результатів у `docs/stages/07-factory.md`.
+
+Далі за планом: етап 8 (no-code builder або скорочено `pnpm agent:publish`), етап 9 (4 інциденти, ранбук,
+kill switch, ADR 0001–0003, README).
+
+Відкриті хвости: калібрування judge (етап 5); рішення щодо критерію `untrustedText` (етап 5); ролі у двох
+місцях (етап 4); listings 7 (етап 2); Ollama наживо (нижче); `RUNTIME_GATEWAY_KEY=dev-runtime-key` у `.env`;
+вправи етапів 3–7. Карта стану — артефакт «Карта Relocation Concierge».
+
+### Відкладене: вправа 5 етапу 1, жива частина (локальна модель)
 
 Офлайн-частина зроблена: `apps/gateway/test/ollama.test.ts` (фальшивий `fetch`), стрім тепер передає
 `delta.reasoning` від Ollama до клієнта (`types.ts`, `openai-compatible.ts`, `app.ts`). Деталі — у

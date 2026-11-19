@@ -104,7 +104,7 @@ Issue 3 має підвох: у стадії 6 Scout наживо зберіг �
 
 ## Що зробити власнику (по порядку)
 
-1. **Push `main`.** Локально 6 комітів понад `origin/main` (7 — після коміту цього етапу). Без цього тригер `issues` не бачить `factory.yml`.
+1. **Push `main`.** Локально 8 комітів понад `origin/main` (разом з цим етапом). Без цього тригер `issues` не бачить `factory.yml`.
 2. **Встановити Claude GitHub App** на репо (`/install-github-app` у Claude Code або https://github.com/apps/claude).
 3. **Два секрети** (Settings → Secrets → Actions):
    - `ANTHROPIC_API_KEY` — для evals у `ci.yml` (досі немає, CI жодного разу не запускався);
