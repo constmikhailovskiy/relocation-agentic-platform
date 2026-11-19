@@ -1,0 +1,21 @@
+# Межі, які агент фабрики не змінює без власника (див. CLAUDE.md, «Для агента фабрики»).
+# «Require review from Code Owners» у branch protection НЕ ввімкнено: репо з одним власником, а автор не схвалює власний PR.
+
+# Безпека: хто що може, токени, делегування
+/packages/shared/src/policy.ts @constmikhailovskiy
+/packages/shared/src/auth.ts @constmikhailovskiy
+/packages/shared/src/audit.ts @constmikhailovskiy
+/apps/runtime/src/sts.ts @constmikhailovskiy
+/apps/runtime/src/hitl.ts @constmikhailovskiy
+
+# CI і сама фабрика: агент не має змінювати власні правила
+/.github/ @constmikhailovskiy
+/scripts/test/factory.test.ts @constmikhailovskiy
+
+# Гейт якості: базова лінія й кейси evals
+/evals/baseline.json @constmikhailovskiy
+/evals/cases/ @constmikhailovskiy
+/evals/src/gate.ts @constmikhailovskiy
+
+# Поведінка агентів
+/agents/ @constmikhailovskiy

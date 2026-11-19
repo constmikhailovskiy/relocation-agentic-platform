@@ -1,0 +1,55 @@
+# Software factory (етап 7): власник ставить лейбл `agent` на issue → Claude Code робить гілку claude/issue-N-…
+# з комітами й посиланням на PR. PR відкриває ЛЮДИНА (кнопкою з посилання) — тоді ci.yml запускається як на
+# звичайний PR, а мердж лишається за власником. Правила безпеки цього файлу перевіряє scripts/test/factory.test.ts.
+name: factory
+
+on:
+  issues:
+    types: [labeled]
+
+# На рівні workflow — нічого; потрібне видаємо лише job-у нижче.
+permissions: {}
+
+jobs:
+  agent:
+    # Репо публічне, текст issue — недовірений вхід. Запускає лише власник, і лише лейблом (його може поставити
+    # тільки той, хто має triage-доступ). Action ще й сама перевіряє write-доступ того, хто запустив.
+    if: github.event.label.name == 'agent' && github.event.sender.login == github.repository_owner
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: factory-${{ github.event.issue.number }}
+      cancel-in-progress: false
+    # Гілку, коміти й коментарі пише Claude GitHub App своїм токеном (права задає встановлення App).
+    # GITHUB_TOKEN цього job-а лише читає: код, який запускає агент, не зможе ним нічого записати.
+    # Якщо перший запуск впаде з 403 — повернути write як у docs/setup.md action і записати це в 07-factory.md.
+    permissions:
+      contents: read
+      issues: read
+      pull-requests: read
+      id-token: write # OIDC: action обмінює його на короткоживучий токен Claude GitHub App
+    steps:
+      # Теги рухаються, SHA — ні: закріплюємо версії, яким уже щонайменше два тижні.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 1
+      - run: corepack enable
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - uses: anthropics/claude-code-action@c0949c50a78c1ec8ce2647db36629b870e715d0c # v1.0.268
+        with:
+          # Окремий ключ фабрики з власним лімітом у консолі Anthropic — не ключ evals.
+          anthropic_api_key: ${{ secrets.FACTORY_ANTHROPIC_API_KEY }}
+          label_trigger: agent
+          branch_prefix: claude/
+          # Тести агент проганяє сам; інтернет і зміна CI йому не потрібні.
+          claude_args: |
+            --model claude-sonnet-5-5
+            --max-turns 40
+            --allowedTools "Read,Edit,Write,Glob,Grep,Bash(pnpm install*),Bash(pnpm typecheck),Bash(pnpm test*),Bash(pnpm vitest*),Bash(pnpm fixtures),Bash(git status*),Bash(git diff*),Bash(git log*)"
+            --disallowedTools "WebFetch,WebSearch"
+            --append-system-prompt "Ти агент фабрики в CI. Дотримуйся розділу «Для агента фабрики» в CLAUDE.md; розділ «Як зі мною працювати» — не для тебе."
