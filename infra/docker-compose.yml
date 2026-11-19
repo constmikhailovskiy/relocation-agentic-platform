@@ -12,3 +12,13 @@ services:
       - "127.0.0.1:8080:8080"
     volumes:
       - ./keycloak:/opt/keycloak/data/import:ro
+
+  temporal:
+    # Temporal CLI dev-сервер: gRPC 7233, Web UI http://127.0.0.1:8233. Історія — у файлі всередині контейнера:
+    # переживає перезапуск (restart), але не перестворення (down/up). Образ працює не від root, тож не в томі.
+    # Запуск: docker compose -f infra/docker-compose.yml up -d temporal
+    image: temporalio/temporal:1.9.1
+    command: ["server", "start-dev", "--ip", "0.0.0.0", "--db-filename", "/tmp/temporal.db"]
+    ports:
+      - "127.0.0.1:7233:7233"
+      - "127.0.0.1:8233:8233"

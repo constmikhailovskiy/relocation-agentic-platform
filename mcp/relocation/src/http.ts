@@ -41,7 +41,7 @@ export function createRelocationApp(deps: RelocationDeps, auth: RelocationAuth):
   const app = new Hono();
 
   // Лише кількість: /health зазвичай доступний моніторингу без авторизації, тож жодних даних про людей.
-  app.get("/health", (c) => c.json({ ok: true, searches: deps.store.searchCount() }));
+  app.get("/health", (c) => c.json({ ok: true, searches: deps.store.searchCount(), outbox: deps.store.outbox().length }));
 
   app.post("/mcp", async (c) => {
     const principal = await auth.mcp(c.req.raw.headers);

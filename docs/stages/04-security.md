@@ -99,6 +99,8 @@ WAL ми не розбирали; спостереження — саме пом
 **Як зроблено.**
 - `VerifiedUser` має «бренд» — поле з `unique symbol` (`sts.ts:9`). Створити такий об'єкт можна лише в
   `userVerifier`, тобто після перевірки підпису. Рядок `--as olena` у `mint` не передаси — TypeScript не дасть.
+  *Етап 6:* з'явився другий шлях — `userFromGrant` для фонового Scout (грант, записаний, коли людина була поруч);
+  `chat.ts` його не використовує. Див. [06-temporal.md](06-temporal.md).
 - `connectTools` отримує `authHeaders(server)` і викликає її з обгортки `fetch` на кожен HTTP-запит
   (`mcp-tools.ts:46`). На етапі 3 заголовки задавались раз при підключенні — з токеном на 5 хвилин це не працює.
 - `delegatedAuthHeaders` (`sts.ts:92`): `"relocation"` → `aud: "mcp-relocation"`; `run_id` бере з об'єкта

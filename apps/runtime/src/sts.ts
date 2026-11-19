@@ -99,3 +99,26 @@ export function delegatedAuthHeaders(
     authorization: `Bearer ${await sts.mint(user, { agent, audience: `mcp-${server}`, runId: current.runId || "connect" })}`,
   });
 }
+
+/**
+ * Делегування, записане тоді, коли людина була поруч (наприклад, Олена створила пошук і дозволила Scout
+ * працювати від її імені). Фоновий агент (Temporal) не має токена людини — лише цей запис.
+ */
+export interface DelegationGrant {
+  sub: string;
+  roles: Role[];
+  /** Якому агенту дозволено: грант для scout не відкриє concierge. */
+  agentId: string;
+  grantedAt: string;
+}
+
+/**
+ * ДРУГИЙ і єдиний інший спосіб отримати VerifiedUser — з гранту, для фонових запусків. Окрема назва навмисно:
+ * chat.ts її не імпортує, тож інтерактивний чат як і раніше вимагає токен IdP.
+ * Чесна межа етапу 6: статус людини в IdP (вимкнена? звільнена?) тут ще не перевіряється — вправа 4.
+ */
+export function userFromGrant(grant: DelegationGrant, spec: AgentSpec): VerifiedUser {
+  if (grant.agentId !== spec.id) throw new Error(`Грант ${grant.sub} видано агенту ${grant.agentId}, а не ${spec.id}`);
+  assertAudience(spec, grant);
+  return { sub: grant.sub, roles: grant.roles } as unknown as VerifiedUser;
+}

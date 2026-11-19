@@ -23,7 +23,10 @@
     "audit:verify": "tsx --disable-warning=ExperimentalWarning scripts/audit-verify.ts",
     "sts:keygen": "tsx scripts/sts-keygen.ts",
     "evals": "pnpm --filter @reloc/evals evals",
-    "evals:gate": "pnpm --filter @reloc/evals gate"
+    "evals:gate": "pnpm --filter @reloc/evals gate",
+    "test:temporal": "vitest run --config apps/worker/vitest.temporal.config.ts",
+    "worker": "pnpm --filter @reloc/worker worker",
+    "wf": "pnpm --filter @reloc/worker wf"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

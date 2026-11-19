@@ -10,6 +10,8 @@
     "scripts",
     "vitest.config.ts",
     "evals/src",
-    "evals/test"
+    "evals/test",
+    "apps/worker/temporal-test",
+    "apps/worker/vitest.temporal.config.ts"
   ]
 }

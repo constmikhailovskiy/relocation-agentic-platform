@@ -36,6 +36,9 @@ export function world() {
     fetch,
     urls: { listings: "http://listings.test/mcp", relocation: "http://relocation.test/mcp" },
     relocationBaseUrl: "http://relocation.test",
+    /** Самі застосунки — щоб підняти їх на справжніх портах (тест Temporal з воркером в окремому процесі). */
+    listingsApp: listings,
+    relocationApp: relocation,
   };
 }
 

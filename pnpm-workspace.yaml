@@ -6,3 +6,6 @@ packages:
 
 allowBuilds:
   esbuild: true
+  # Temporal SDK: @swc/core збирає workflow-бандл (нативний бінарник), protobufjs — перевірка версії.
+  "@swc/core": true
+  protobufjs: true

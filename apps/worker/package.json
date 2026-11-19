@@ -1,0 +1,23 @@
+{
+  "name": "@reloc/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "worker": "tsx --disable-warning=ExperimentalWarning --env-file-if-exists=../../.env src/worker.ts",
+    "wf": "tsx --disable-warning=ExperimentalWarning --env-file-if-exists=../../.env src/client.ts"
+  },
+  "dependencies": {
+    "@reloc/shared": "workspace:*",
+    "@temporalio/activity": "1.25.0",
+    "@temporalio/client": "1.25.0",
+    "@temporalio/worker": "1.25.0",
+    "@temporalio/workflow": "1.25.0",
+    "zod": "^4.6.0",
+    "jose": "^6.2.17"
+  },
+  "devDependencies": {
+    "@hono/node-server": "^2.1.8",
+    "@temporalio/testing": "1.25.0"
+  }
+}

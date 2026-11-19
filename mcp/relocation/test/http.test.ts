@@ -45,7 +45,7 @@ describe("HTTP /mcp", () => {
 
   it("/health — без PII: лише кількості", async () => {
     const res = await setup({}).app.request("/health");
-    expect(await res.json()).toEqual({ ok: true, searches: 2 });
+    expect(await res.json()).toEqual({ ok: true, searches: 2, outbox: 0 });
   });
 });
 

@@ -3,7 +3,7 @@ import { RUNTIME_ISSUER, jwtAuth } from "@reloc/shared";
 import { SignJWT, createLocalJWKSet, exportJWK, generateKeyPair } from "jose";
 import { describe, expect, it } from "vitest";
 import { loadAgentSpec } from "../src/spec.ts";
-import { assertAudience, createSts, userVerifier } from "../src/sts.ts";
+import { assertAudience, createSts, userFromGrant, userVerifier } from "../src/sts.ts";
 
 /**
  * Runtime як внутрішній STS (варіант B, ADR 0002):
@@ -79,5 +79,27 @@ describe("createSts.mint: делегований токен", () => {
     const t = await sts.mint(user, { agent: "agent:concierge@7", audience: "mcp-listings", runId: "run-1" });
     const auth = jwtAuth({ issuer: RUNTIME_ISSUER, audience: "mcp-relocation", keys: runtimeKeys, now: () => NOW });
     expect(await auth(new Headers({ authorization: `Bearer ${t}` }))).toBeUndefined();
+  });
+});
+
+describe("userFromGrant: фоновий запуск без людини (етап 6)", () => {
+  const scout = loadAgentSpec(join(import.meta.dirname, "..", "..", "..", "agents", "scout.yaml"));
+  const grant = { sub: "olena", roles: ["new_hire" as const], agentId: "scout", grantedAt: "2026-11-15T09:00:00.000Z" };
+
+  it("грант для цього агента → VerifiedUser, з яким STS підписує делегований токен", async () => {
+    const user = userFromGrant(grant, scout);
+    expect(user).toMatchObject({ sub: "olena", roles: ["new_hire"] });
+    const sts = createSts({ privateKey: runtime.privateKey, kid: "rt-1", now: () => NOW });
+    const t = await sts.mint(user, { agent: "agent:scout@1", audience: "mcp-relocation", runId: "search-s-olena:0" });
+    const auth = jwtAuth({ issuer: RUNTIME_ISSUER, audience: "mcp-relocation", keys: runtimeKeys, now: () => NOW });
+    expect(await auth(new Headers({ authorization: `Bearer ${t}` }))).toMatchObject({ sub: "olena", act: { sub: "agent:scout@1" } });
+  });
+
+  it("грант видано іншому агенту → помилка: грант не переноситься між агентами", () => {
+    expect(() => userFromGrant({ ...grant, agentId: "concierge" }, scout)).toThrow(/scout/);
+  });
+
+  it("роль поза audience агента → помилка (та сама перевірка, що в чаті)", () => {
+    expect(() => userFromGrant({ ...grant, sub: "ivan", roles: ["hiring_manager"] }, scout)).toThrow(/ivan/);
   });
 });

@@ -30,6 +30,9 @@ pnpm listings           # MCP-сервер listings на 127.0.0.1:8788/mcp (JWT
 pnpm relocation         # MCP-сервер relocation на 127.0.0.1:8789/mcp (те саме; /approvals — лише токени Keycloak)
 pnpm chat --as olena    # CLI-чат з агентом Concierge (потрібні gateway, listings, relocation, Keycloak; --model mock — без звернень до Anthropic)
 pnpm sts:keygen         # ключі runtime-STS у .secrets/ (один раз; у git не йдуть)
+pnpm worker             # Temporal-воркер (searchWorkflow + Scout); потрібен Temporal: docker compose … up -d temporal
+pnpm wf start --as olena --search s-olena --tick "2 minutes" --max 3   # грант + старт workflow (не `pnpm search` — це вбудована команда pnpm)
+pnpm test:temporal      # тест «вбитий воркер» на dev-сервері Temporal (не входить у pnpm test)
 pnpm evals              # eval-кейси зі справжньою моделлю (ANTHROPIC_API_KEY), ≈ $0.075 повний прогін
 pnpm evals:gate         # порівняти evals/reports/report.json з evals/baseline.json (код 1 — блок)
 pnpm audit:verify       # перевірити хеш-ланцюжок data/audit.db; --run <id> — події одного запуску
@@ -62,14 +65,15 @@ apps/gateway/      LLM gateway (Hono): реєстр моделей, політи
 mcp/listings/      MCP-сервер listings: адаптери OLX/ЛУН, дедуп, пошук, MCP-обгортка (SDK + Hono, stateless)
 mcp/relocation/    MCP-сервер relocation: 7 інструментів, права (RBAC/ReBAC/поля), HITL з args_hash, approvals, стор у пам'яті;
                    не-MCP маршрут POST /approvals/:id/confirm (підтвердження людиною)
+apps/worker/       Temporal: searchWorkflow, activities Scout, воркер, CLI wf, гранти (data/grants.json)
 apps/runtime/      цикл агента, MCP-клієнт з allowlist, HITL-guard, клієнт gateway, CLI-чат
-agents/            специфікації агентів (concierge.yaml, формат AgentSpec)
+agents/            специфікації агентів (concierge.yaml, scout.yaml; формат AgentSpec)
 scripts/           генератор фікстур, gateway-key, cache-demo
 fixtures/          згенеровані дані OLX/ЛУН, люди, пошуки, traps.json
 docs/              case.md, interview-answers.md, stages/
 ```
 
-infra/             docker-compose (Keycloak), realm relocation-sandbox
+infra/             docker-compose (Keycloak, Temporal), realm relocation-sandbox
 evals/             37 eval-кейсів (YAML; fixtures/subtle.olx.json — пастки лише для evals), ранер, перевірки, judge, гейт; baseline.json — з main
 .github/workflows/ ci.yml: офлайн-тести + evals-гейт на PR
 
@@ -84,7 +88,8 @@ evals/             37 eval-кейсів (YAML; fixtures/subtle.olx.json — па
 | 3 — цикл агента + CLI-чат | **готово**: повний сценарій пройдено офлайн (`scenario.test.ts`) і наживо з `haiku` ($0.006 за сесію). Вправи 1–8 у `docs/stages/03-runtime.md` не розв'язані; інтерактивний TTY-режим ще не перевірено (лише pipe) |
 | 4 — SSO, делегування, аудит | **готово**: аудит з хеш-ланцюжком і `audit:verify`; JWT у серверах; runtime як STS; підтвердження лише токеном Keycloak. Наживо з Keycloak і `haiku`: Іван не бачить бюджет, Богдан не запускає Concierge, Олена — повний сценарій. Вправи 1–6 у `docs/stages/04-security.md` не розв'язані |
 | 5 — evals + гейт у CI | **код готовий; критерій «послаблений untrustedText → PR заблоковано» НЕ виконується** — ні на грубих, ні на 6 тонких eval-only пастках (18/18 в обох варіантах) (haiku + серверні шари стійкі). Гейт ловить послаблення інших інструкцій (v7 без check_availability → блок) і регресію коду захисту (без проєкції полів → блок). Workflow ще не запускався. Рішення за користувачем (вправи 1–2). Потрібні: секрет `ANTHROPIC_API_KEY` у GitHub, push, demo-PR. Judge не відкалібровано |
-| 6–9 | за планом у `docs/case.md`, розділ «План» |
+| 6 — Temporal | **готово**: критерій «вбитий воркер — ні втрати, ні дубля» доведено офлайн, на тестовому сервері Temporal (SIGKILL дочірнього воркера) і наживо з haiku (attempt=2 після heartbeat timeout, лист один). Вправи 2–5 за користувачем; статус у IdP не перевіряється |
+| 7–9 | за планом у `docs/case.md`, розділ «План» |
 
 ## Наступний крок: вправа 5, жива частина (локальна модель)
 
@@ -141,3 +146,14 @@ evals/             37 eval-кейсів (YAML; fixtures/subtle.olx.json — па
 - Кожен кейс має позитивну перевірку; самоперевірка: агент «Готово.» провалює всі кейси.
 - Security-кейси ×3 і 100%; базова лінія в CI — з базової гілки.
 - `concierge` v8: `check_availability` перед переглядом; про іншого працівника — `get_search` з його id.
+
+## Етап 6 — коротко (деталі в docs/stages/06-temporal.md)
+
+- Лист Scout надсилає КОД activity з ключем `${runKey}:notify` (runKey = searchId:iteration), не модель.
+- «Нове» = різниця зі знімком шортлиста, який окрема activity записала в історію Temporal.
+- runKey = `${searchId}:${firstExecutionRunId}:${iteration}` — унікальний на старт, стабільний між ретраями.
+- heartbeatTimeout 30 с; tool_failed → retryable, бюджет/кроки/немає гранту → nonRetryable; провал ітерації не вбиває workflow, grant_missing → пауза.
+- `pnpm wf status` потребує запущеного воркера (query виконує воркер).
+- Scout працює за грантом (`userFromGrant`), не за логіном; `chat.ts` цей шлях не використовує.
+- Workflow-файл — лише `@temporalio/workflow` і `import type`; інтервал і таймаути — з input.
+- `allowBuilds` у pnpm-workspace: додано `@swc/core` і `protobufjs` (потрібні Temporal SDK).
